@@ -299,6 +299,8 @@ namespace Emby.AutoOrganize.Core
                     _fileSystem.CreateDirectory(series.Path);
 
                     series.ProviderIds = request.NewSeriesProviderIds;
+
+                    _libraryManager.CreateItem(series, null);
                 }
             }
 
@@ -653,8 +655,7 @@ namespace Emby.AutoOrganize.Core
                     var locationType = i.LocationType;
 
                     // Must be file system based and match exactly
-                    if (locationType != LocationType.Remote &&
-                        locationType != LocationType.Virtual &&
+                    if (locationType != LocationType.Virtual &&
                         i.ParentIndexNumber.HasValue &&
                         i.ParentIndexNumber.Value == series.ParentIndexNumber &&
                         i.IndexNumber.HasValue &&
