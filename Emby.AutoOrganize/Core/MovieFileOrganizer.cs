@@ -183,6 +183,15 @@ namespace Emby.AutoOrganize.Core
                 {
                     // Existing movie
                     movie = (Movie)_libraryManager.GetItemById(request.MovieId);
+                    var newPath = GetMoviePath(result.OriginalPath, movie, options);
+                    var targetFolder = _libraryManager
+                    .GetVirtualFolders()
+                    .Where(i => i.CollectionType == CollectionType.Movies)
+                    .FirstOrDefault()
+                    .Locations
+                    .Where(i => movie.Path.Contains(i))
+                    .FirstOrDefault();
+                    movie.Path = Path.Combine(targetFolder, newPath);
                 }
 
                 // We manually set the media as Movie 
