@@ -155,7 +155,7 @@
             var movieOptions = config.MovieOptions;
 
             movieOptions.IsEnabled = view.querySelector('#chkEnableMovieSorting').checked;
-            movieOptions.OverwriteExistingEpisodes = view.querySelector('#chkOverwriteExistingMovies').checked;
+            movieOptions.OverwriteExistingFiles = view.querySelector('#chkOverwriteExistingMovies').checked;
             movieOptions.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyMovieFolders').checked;
 
             movieOptions.MinFileSizeMb = view.querySelector('#txtMovieMinFileSize').value;

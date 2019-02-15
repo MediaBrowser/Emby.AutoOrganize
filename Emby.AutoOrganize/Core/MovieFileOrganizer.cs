@@ -17,6 +17,7 @@ using Emby.Naming.Common;
 using Emby.Naming.Video;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Providers;
+using MediaBrowser.Model.Entities;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -58,7 +59,7 @@ namespace Emby.AutoOrganize.Core
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
-        public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, bool overwriteExisting, CancellationToken cancellationToken)
+        public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
 
@@ -99,7 +100,6 @@ namespace Emby.AutoOrganize.Core
                         movieName,
                         movieYear,
                         options,
-                        overwriteExisting,
                         result,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -183,6 +183,15 @@ namespace Emby.AutoOrganize.Core
                 {
                     // Existing movie
                     movie = (Movie)_libraryManager.GetItemById(request.MovieId);
+                    var newPath = GetMoviePath(result.OriginalPath, movie, options);
+                    var targetFolder = _libraryManager
+                    .GetVirtualFolders()
+                    .Where(i => i.CollectionType == CollectionType.Movies)
+                    .FirstOrDefault()
+                    .Locations
+                    .Where(i => movie.Path.Contains(i))
+                    .FirstOrDefault();
+                    movie.Path = Path.Combine(targetFolder, newPath);
                 }
 
                 // We manually set the media as Movie 
@@ -192,7 +201,6 @@ namespace Emby.AutoOrganize.Core
                     movie,
                     options,
                     null,
-                    true,
                     result,
                     cancellationToken).ConfigureAwait(false);
 
@@ -213,7 +221,6 @@ namespace Emby.AutoOrganize.Core
             string movieName,
             int? movieYear,
             MovieFileOrganizationOptions options,
-            bool overwriteExisting,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
@@ -245,7 +252,6 @@ namespace Emby.AutoOrganize.Core
                 movie,
                 options,
                 searchResult,
-                overwriteExisting,
                 result,
                 cancellationToken).ConfigureAwait(false);
         }
@@ -254,14 +260,12 @@ namespace Emby.AutoOrganize.Core
             Movie movie,
             MovieFileOrganizationOptions options,
             RemoteSearchResult remoteResult,
-            bool overwriteExisting,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
             await OrganizeMovie(sourcePath,
                 movie,
                 options,
-                overwriteExisting,
                 result,
                 cancellationToken).ConfigureAwait(false);
         }
@@ -269,7 +273,6 @@ namespace Emby.AutoOrganize.Core
         private async Task OrganizeMovie(string sourcePath,
             Movie movie,
             MovieFileOrganizationOptions options,
-            bool overwriteExisting,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
@@ -296,7 +299,7 @@ namespace Emby.AutoOrganize.Core
 
                 var fileExists = _fileSystem.FileExists(result.TargetPath);
 
-                if (!overwriteExisting)
+                if (!options.OverwriteExistingFiles)
                 {
                     if (options.CopyOriginalFile && fileExists && IsSameMovie(sourcePath, newPath))
                     {
