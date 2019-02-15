@@ -59,7 +59,7 @@ namespace Emby.AutoOrganize.Core
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
-        public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, bool overwriteExisting, CancellationToken cancellationToken)
+        public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {
             _logger.Info("Sorting file {0}", path);
 
