@@ -258,14 +258,14 @@ namespace Emby.AutoOrganize.Core
                         TargetFolder = options.DefaultSeriesLibraryPath
                     };
 
-                    return await CreateNewSeries(organizationRequest, finalResult, options, cancellationToken).ConfigureAwait(false);
+                    return CreateNewSeries(organizationRequest, finalResult, options, cancellationToken);
                 }
             }
 
             return null;
         }
 
-        private async Task<Series> CreateNewSeries(
+        private Series CreateNewSeries(
             EpisodeFileOrganizationRequest request,
             RemoteSearchResult result,
             TvFileOrganizationOptions options,
@@ -273,45 +273,37 @@ namespace Emby.AutoOrganize.Core
         {
             Series series;
 
-            // Ensure that we don't create the same series multiple time 
-            // We create series one at a time
-            var seriesCreationLock = new Object();
-            lock (seriesCreationLock)
+            series = GetMatchingSeries(request.NewSeriesName, request.NewSeriesYear, request.TargetFolder, null);
+
+            if (series != null)
             {
-                series = GetMatchingSeries(request.NewSeriesName, request.NewSeriesYear, request.TargetFolder, null);
-
-                if (series == null)
-                {
-                    // We're having a new series here
-
-                    series = new Series
-                    {
-                        Id = Guid.NewGuid(),
-                        Name = request.NewSeriesName,
-                        ProductionYear = request.NewSeriesYear
-                    };
-
-                    var seriesFolderName = GetSeriesDirectoryName(series, options);
-
-                    series.Path = Path.Combine(request.TargetFolder, seriesFolderName);
-
-                    // Create the folder
-                    _fileSystem.CreateDirectory(series.Path);
-
-                    series.ProviderIds = request.NewSeriesProviderIds;
-
-                    _libraryManager.CreateItem(series, null);
-                }
+                return series;
             }
 
-            // async outside of the lock for perfs
-            var refreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                SearchResult = result
-            };
-            await series.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
+            // We're having a new series here
 
-            return series;
+            series = new Series
+            {
+                Id = Guid.NewGuid(),
+                Name = request.NewSeriesName,
+                ProductionYear = request.NewSeriesYear
+            };
+
+            var seriesFolderName = GetSeriesDirectoryName(series, options);
+
+            var seriesName = series.Name;
+            var seriesPath = Path.Combine(request.TargetFolder, seriesFolderName);
+
+            // Create the folder
+            _fileSystem.CreateDirectory(seriesPath);
+
+            return new Series
+            {
+                Name = seriesName,
+                Path = seriesPath,
+                ProviderIds = request.NewSeriesProviderIds,
+                ProductionYear = request.NewSeriesYear
+            };
         }
 
         public async Task<FileOrganizationResult> OrganizeWithCorrection(
@@ -327,7 +319,7 @@ namespace Emby.AutoOrganize.Core
 
                 if (request.NewSeriesProviderIds.Count > 0)
                 {
-                    series = await CreateNewSeries(request, null, options, cancellationToken).ConfigureAwait(false);
+                    series = CreateNewSeries(request, null, options, cancellationToken);
                 }
 
                 if (series == null)
@@ -340,15 +332,15 @@ namespace Emby.AutoOrganize.Core
                 result.Type = CurrentFileOrganizerType;
 
                 await OrganizeEpisode(result.OriginalPath,
-                    series,
-                    request.SeasonNumber,
-                    request.EpisodeNumber,
-                    request.EndingEpisodeNumber,
-                    null,
-                    options,
-                    request.RememberCorrection,
-                    result,
-                    cancellationToken).ConfigureAwait(false);
+                   series,
+                   request.SeasonNumber,
+                   request.EpisodeNumber,
+                   request.EndingEpisodeNumber,
+                   null,
+                   options,
+                   request.RememberCorrection,
+                   result,
+                   cancellationToken).ConfigureAwait(false);
 
                 _organizationService.SaveResult(result, CancellationToken.None);
             }
@@ -437,19 +429,19 @@ namespace Emby.AutoOrganize.Core
             // Now we can check the episode Path
             if (string.IsNullOrEmpty(episode.Path))
             {
-                SetEpisodeFileName(sourcePath, series, season, episode, options);
+                SetEpisodeFileName(sourcePath, series.Name, season, episode, options);
             }
 
-            await OrganizeEpisode(sourcePath,
-                series,
-                episode,
-                options,
-                rememberCorrection,
-                result,
-                cancellationToken);
+            OrganizeEpisode(sourcePath,
+               series,
+               episode,
+               options,
+               rememberCorrection,
+               result,
+               cancellationToken);
         }
 
-        private async Task OrganizeEpisode(string sourcePath,
+        private void OrganizeEpisode(string sourcePath,
             Series series,
             Episode episode,
             TvFileOrganizationOptions options,
@@ -571,26 +563,26 @@ namespace Emby.AutoOrganize.Core
 
             if (rememberCorrection)
             {
-                SaveSmartMatchString(originalExtractedSeriesString, series, cancellationToken);
+                SaveSmartMatchString(originalExtractedSeriesString, series.Name, cancellationToken);
             }
         }
 
-        private void SaveSmartMatchString(string matchString, Series series, CancellationToken cancellationToken)
+        private void SaveSmartMatchString(string matchString, string seriesName, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(matchString) || matchString.Length < 3)
             {
                 return;
             }
 
-            var info = _organizationService.GetSmartMatchInfos().Items.FirstOrDefault(i => string.Equals(i.ItemName, series.Name, StringComparison.OrdinalIgnoreCase));
+            var info = _organizationService.GetSmartMatchInfos().Items.FirstOrDefault(i => string.Equals(i.ItemName, seriesName, StringComparison.OrdinalIgnoreCase));
 
             if (info == null)
             {
                 info = new SmartMatchResult
                 {
-                    ItemName = series.Name,
+                    ItemName = seriesName,
                     OrganizerType = CurrentFileOrganizerType,
-                    DisplayName = series.Name
+                    DisplayName = seriesName
                 };
             }
 
@@ -644,6 +636,11 @@ namespace Emby.AutoOrganize.Core
         {
             // TODO: Support date-naming?
             if (!series.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue)
+            {
+                return new List<string>();
+            }
+
+            if (IsNewSeries(series))
             {
                 return new List<string>();
             }
@@ -752,6 +749,11 @@ namespace Emby.AutoOrganize.Core
             }
         }
 
+        private bool IsNewSeries(Series series)
+        {
+            return series.InternalId.Equals(0);
+        }
+
         private async Task<Episode> GetMatchingEpisode(Series series,
             int? seasonNumber,
             int? episodeNumber,
@@ -760,13 +762,18 @@ namespace Emby.AutoOrganize.Core
             DateTime? premiereDate,
             CancellationToken cancellationToken)
         {
-            var episode = series
-                .GetRecursiveChildren().OfType<Episode>()
-                .FirstOrDefault(e => e.ParentIndexNumber == seasonNumber
-                        && e.IndexNumber == episodeNumber
-                        && e.IndexNumberEnd == endingEpiosdeNumber
-                        && e.LocationType == LocationType.FileSystem
-                        && Path.GetExtension(e.Path) == Path.GetExtension(result.OriginalPath));
+            Episode episode = null;
+
+            if (!IsNewSeries(series))
+            {
+                episode = series
+                   .GetRecursiveChildren().OfType<Episode>()
+                   .FirstOrDefault(e => e.ParentIndexNumber == seasonNumber
+                           && e.IndexNumber == episodeNumber
+                           && e.IndexNumberEnd == endingEpiosdeNumber
+                           && e.LocationType == LocationType.FileSystem
+                           && Path.GetExtension(e.Path) == Path.GetExtension(result.OriginalPath));
+            }
 
             if (episode == null)
             {
@@ -782,10 +789,13 @@ namespace Emby.AutoOrganize.Core
 
             if (season == null)
             {
-                season = series
-                    .GetRecursiveChildren().OfType<Season>()
-                    .FirstOrDefault(e => e.IndexNumber == episode.ParentIndexNumber
-                                         && e.LocationType == LocationType.FileSystem);
+                if (!IsNewSeries(series))
+                {
+                    season = series
+                        .GetRecursiveChildren().OfType<Season>()
+                        .FirstOrDefault(e => e.IndexNumber == episode.ParentIndexNumber
+                                             && e.LocationType == LocationType.FileSystem);
+                }
 
                 if (season == null)
                 {
@@ -975,6 +985,11 @@ namespace Emby.AutoOrganize.Core
 
         private bool ContainsEpisodesWithoutSeasonFolders(Series series)
         {
+            if (IsNewSeries(series))
+            {
+                return false;
+            }
+
             var children = series.Children;
             foreach (var child in children)
             {
@@ -986,9 +1001,9 @@ namespace Emby.AutoOrganize.Core
             return false;
         }
 
-        private void SetEpisodeFileName(string sourcePath, Series series, Season season, Episode episode, TvFileOrganizationOptions options)
+        private void SetEpisodeFileName(string sourcePath, string seriesName, Season season, Episode episode, TvFileOrganizationOptions options)
         {
-            var seriesName = _fileSystem.GetValidFilename(series.Name).Trim();
+            seriesName = _fileSystem.GetValidFilename(seriesName).Trim();
 
             var episodeTitle = _fileSystem.GetValidFilename(episode.Name).Trim();
 
