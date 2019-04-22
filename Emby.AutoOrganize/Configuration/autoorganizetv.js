@@ -161,8 +161,6 @@
         view.querySelector('#chkExtendedClean').checked = tvOptions.ExtendedClean;
 
         view.querySelector('#copyOrMoveFile').value = tvOptions.CopyOriginalFile.toString();
-
-        view.querySelector('#chkQueueLibScan').checked = tvOptions.QueueLibraryScan;
     }
 
     function onSubmit(view) {
@@ -195,8 +193,6 @@
             tvOptions.WatchLocations = watchLocation ? [watchLocation] : [];
 
             tvOptions.CopyOriginalFile = view.querySelector('#copyOrMoveFile').value;
-
-            tvOptions.QueueLibraryScan = view.querySelector('#chkQueueLibScan').checked;
 
             ApiClient.updateNamedConfiguration('autoorganize', config).then(Dashboard.processServerConfigurationUpdateResult, Dashboard.processErrorResponse);
         });

@@ -26,8 +26,6 @@ namespace Emby.AutoOrganize.Model
 
         public string MovieFolderPattern { get; set; }
 
-        public bool QueueLibraryScan { get; set; }
-
         public MovieFileOrganizationOptions()
         {
             MinFileSizeMb = 50;
@@ -43,8 +41,6 @@ namespace Emby.AutoOrganize.Model
             MovieFolder = false;
 
             MovieFolderPattern = "%mn (%my)";
-
-            QueueLibraryScan = false;
 
             ExtendedClean = false;
         }

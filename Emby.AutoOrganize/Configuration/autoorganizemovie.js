@@ -144,8 +144,6 @@
         view.querySelector('#chkEnableMovieAutoDetect').checked = movieOptions.AutoDetectMovie;
 
         view.querySelector('#copyOrMoveMovieFile').value = movieOptions.CopyOriginalFile.toString();
-
-        view.querySelector('#chkQueueLibScan').checked = movieOptions.QueueLibraryScan;
     }
 
     function onSubmit(view) {
@@ -174,8 +172,6 @@
             movieOptions.WatchLocations = watchLocation ? [watchLocation] : [];
 
             movieOptions.CopyOriginalFile = view.querySelector('#copyOrMoveMovieFile').value;
-
-            movieOptions.QueueLibraryScan = view.querySelector('#chkQueueLibScan').checked;
 
             ApiClient.updateNamedConfiguration('autoorganize', config).then(Dashboard.processServerConfigurationUpdateResult, Dashboard.processErrorResponse);
         });

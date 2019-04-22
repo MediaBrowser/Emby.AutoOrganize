@@ -53,13 +53,10 @@ namespace Emby.AutoOrganize.Core
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            bool queueTv = false, queueMovie = false;
-
             var options = GetAutoOrganizeOptions();
 
             if (options.TvOptions.IsEnabled)
             {
-                queueTv = options.TvOptions.QueueLibraryScan;
                 var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
 
                 await new TvFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
@@ -69,16 +66,10 @@ namespace Emby.AutoOrganize.Core
             //var queueMovie = false;
             if (options.MovieOptions.IsEnabled)
             {
-                queueMovie = options.MovieOptions.QueueLibraryScan;
                 var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
 
                 await new MovieFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
                     .Organize(options.MovieOptions, cancellationToken, progress).ConfigureAwait(false);
-            }
-
-            if ((queueTv || queueMovie) && !_libraryManager.IsScanRunning)
-            {
-                _libraryManager.QueueLibraryScan();
             }
         }
 
