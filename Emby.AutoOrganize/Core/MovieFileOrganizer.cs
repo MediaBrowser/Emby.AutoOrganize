@@ -186,7 +186,7 @@ namespace Emby.AutoOrganize.Core
                     var newPath = GetMoviePath(result.OriginalPath, movie, options);
                     var targetFolder = _libraryManager
                     .GetVirtualFolders()
-                    .Where(i => i.CollectionType == CollectionType.Movies)
+                    .Where(i => string.Equals(i.CollectionType, CollectionType.Movies.ToString(), StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefault()
                     .Locations
                     .Where(i => movie.Path.Contains(i))
@@ -400,7 +400,7 @@ namespace Emby.AutoOrganize.Core
         {
             if (options.AutoDetectMovie)
             {
-                var parsedName = _libraryManager.ParseName(movieName);
+                var parsedName = _libraryManager.ParseName(movieName.AsSpan());
 
                 var yearInName = parsedName.Year;
                 var nameWithoutYear = parsedName.Name;
@@ -474,7 +474,7 @@ namespace Emby.AutoOrganize.Core
 
         private Movie GetMatchingMovie(string movieName, int? movieYear, string targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
-            var parsedName = _libraryManager.ParseName(movieName);
+            var parsedName = _libraryManager.ParseName(movieName.AsSpan());
 
             var yearInName = parsedName.Year;
             var nameWithoutYear = parsedName.Name;

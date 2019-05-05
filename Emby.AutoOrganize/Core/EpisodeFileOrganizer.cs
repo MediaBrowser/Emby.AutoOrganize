@@ -98,7 +98,7 @@ namespace Emby.AutoOrganize.Core
 
                 if (!string.IsNullOrEmpty(seriesName))
                 {
-                    var seriesParseResult = _libraryManager.ParseName(seriesName);
+                    var seriesParseResult = _libraryManager.ParseName(seriesName.AsSpan());
 
                     seriesName = seriesParseResult.Name;
                     seriesYear = seriesParseResult.Year;
@@ -679,7 +679,7 @@ namespace Emby.AutoOrganize.Core
             try
             {
                 var filesOfOtherExtensions = _fileSystem.GetFilePaths(folder)
-                    .Where(i => _libraryManager.IsVideoFile(i) && string.Equals(_fileSystem.GetFileNameWithoutExtension(i), targetFileNameWithoutExtension, StringComparison.OrdinalIgnoreCase));
+                    .Where(i => _libraryManager.IsVideoFile(i.AsSpan()) && string.Equals(_fileSystem.GetFileNameWithoutExtension(i), targetFileNameWithoutExtension, StringComparison.OrdinalIgnoreCase));
 
                 episodePaths.AddRange(filesOfOtherExtensions);
             }
