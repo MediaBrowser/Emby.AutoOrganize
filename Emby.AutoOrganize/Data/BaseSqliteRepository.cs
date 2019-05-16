@@ -34,25 +34,6 @@ namespace Emby.AutoOrganize.Data
             get { return TransactionMode.Deferred; }
         }
 
-        internal static int ThreadSafeMode { get; set; }
-
-        static BaseSqliteRepository()
-        {
-            SQLite3.EnableSharedCache = false;
-
-            int rc = raw.sqlite3_config(raw.SQLITE_CONFIG_MEMSTATUS, 0);
-            //CheckOk(rc);
-
-            rc = raw.sqlite3_config(raw.SQLITE_CONFIG_MULTITHREAD, 1);
-            //rc = raw.sqlite3_config(raw.SQLITE_CONFIG_SINGLETHREAD, 1);
-            //rc = raw.sqlite3_config(raw.SQLITE_CONFIG_SERIALIZED, 1);
-            //CheckOk(rc);
-
-            rc = raw.sqlite3_enable_shared_cache(1);
-
-            ThreadSafeMode = raw.sqlite3_threadsafe();
-        }
-
         private static bool _versionLogged;
 
         private string _defaultWal;
@@ -180,14 +161,19 @@ namespace Emby.AutoOrganize.Data
             return connection.PrepareStatement(sql);
         }
 
-        public List<IStatement> PrepareAll(IDatabaseConnection connection, IEnumerable<string> sql)
+        public IStatement[] PrepareAll(IDatabaseConnection connection, List<string> sql)
         {
             return PrepareAllSafe(connection, sql);
         }
 
-        public List<IStatement> PrepareAllSafe(IDatabaseConnection connection, IEnumerable<string> sql)
+        public IStatement[] PrepareAllSafe(IDatabaseConnection connection, List<string> sql)
         {
-            return sql.Select(connection.PrepareStatement).ToList();
+            return sql.Select(connection.PrepareStatement).ToArray();
+        }
+
+        public IStatement[] PrepareAllSafe(IDatabaseConnection connection, string[] sql)
+        {
+            return sql.Select(connection.PrepareStatement).ToArray();
         }
 
         protected bool TableExists(ManagedConnection connection, string name)
@@ -257,16 +243,6 @@ namespace Emby.AutoOrganize.Data
             get
             {
                 return null;
-            }
-        }
-
-        internal static void CheckOk(int rc)
-        {
-            string msg = "";
-
-            if (raw.SQLITE_OK != rc)
-            {
-                throw CreateException((ErrorCode)rc, msg);
             }
         }
 
@@ -355,14 +331,15 @@ namespace Emby.AutoOrganize.Data
             return list;
         }
 
-        protected void AddColumn(IDatabaseConnection connection, string table, string columnName, string type, List<string> existingColumnNames)
+        protected bool AddColumn(IDatabaseConnection connection, string table, string columnName, string type, List<string> existingColumnNames)
         {
             if (existingColumnNames.Contains(columnName, StringComparer.OrdinalIgnoreCase))
             {
-                return;
+                return false;
             }
 
             connection.Execute("alter table " + table + " add column " + columnName + " " + type + " NULL");
+            return true;
         }
     }
 

@@ -13,8 +13,6 @@ using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.IO;
-using Emby.Naming.Common;
-using Emby.Naming.Video;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Entities;
@@ -44,19 +42,6 @@ namespace Emby.AutoOrganize.Core
             _providerManager = providerManager;
         }
 
-        private NamingOptions _namingOptions;
-        private NamingOptions GetNamingOptionsInternal()
-        {
-            if (_namingOptions == null)
-            {
-                var options = new NamingOptions();
-
-                _namingOptions = options;
-            }
-
-            return _namingOptions;
-        }
-
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Movie;
 
         public async Task<FileOrganizationResult> OrganizeMovieFile(string path, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
@@ -82,11 +67,7 @@ namespace Emby.AutoOrganize.Core
                     return result;
                 }
 
-                var namingOptions = GetNamingOptionsInternal();
-                var resolver = new VideoResolver(namingOptions);
-
-                var movieInfo = resolver.Resolve(path.AsSpan(), false) ??
-                    new VideoFileInfo();
+                var movieInfo = _libraryManager.IsVideoFile(path.AsSpan()) ? _libraryManager.ParseName(path.AsSpan()) : new ItemLookupInfo();
 
                 var movieName = movieInfo.Name;
 

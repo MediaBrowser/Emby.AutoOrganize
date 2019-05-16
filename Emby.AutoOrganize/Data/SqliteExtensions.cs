@@ -12,11 +12,6 @@ namespace Emby.AutoOrganize.Data
     {
         public static void RunQueries(this SQLiteDatabaseConnection connection, string[] queries)
         {
-            if (queries == null)
-            {
-                throw new ArgumentNullException("queries");
-            }
-
             connection.RunInTransaction(conn =>
             {
                 //foreach (var query in queries)
@@ -39,7 +34,11 @@ namespace Emby.AutoOrganize.Data
 
         public static Guid ReadGuidFromBlob(this IResultSetValue result)
         {
+#if NETCOREAPP
             return new Guid(result.ToBlob());
+#else
+            return new Guid(result.ToBlob().ToArray());
+#endif
         }
 
         public static string ToDateTimeParamValue(this DateTime dateValue)
@@ -111,6 +110,20 @@ namespace Emby.AutoOrganize.Data
                 DateTimeStyles.None).ToUniversalTime();
         }
 
+        public static DateTimeOffset ReadDateTimeOffset(this IResultSetValue result)
+        {
+            return ReadDateTimeOffset(result, false);
+        }
+
+        public static DateTimeOffset ReadDateTimeOffset(this IResultSetValue result, bool enableMsPrecision)
+        {
+            if (enableMsPrecision)
+            {
+                return DateTimeOffset.FromUnixTimeMilliseconds(result.ToInt64());
+            }
+            return DateTimeOffset.FromUnixTimeSeconds(result.ToInt64());
+        }
+
         /// <summary>
         /// Serializes to bytes.
         /// </summary>
@@ -118,11 +131,6 @@ namespace Emby.AutoOrganize.Data
         /// <exception cref="System.ArgumentNullException">obj</exception>
         public static byte[] SerializeToBytes(this IJsonSerializer json, object obj)
         {
-            if (obj == null)
-            {
-                throw new ArgumentNullException("obj");
-            }
-
             using (var stream = new MemoryStream())
             {
                 json.SerializeToStream(obj, stream);
@@ -149,6 +157,14 @@ namespace Emby.AutoOrganize.Data
         public static string GetString(this IReadOnlyList<IResultSetValue> result, int index)
         {
             return result[index].ToString();
+        }
+        public static ReadOnlyMemory<char> GetReadOnlyMemoryChar(this IReadOnlyList<IResultSetValue> result, int index)
+        {
+            return result[index].ToReadOnlyMemoryChar();
+        }
+        public static ReadOnlySpan<char> GetReadOnlySpanChar(this IReadOnlyList<IResultSetValue> result, int index)
+        {
+            return result[index].ToReadOnlySpanChar();
         }
 
         public static bool GetBoolean(this IReadOnlyList<IResultSetValue> result, int index)
@@ -219,6 +235,26 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, string name, ReadOnlyMemory<char> value)
+        {
+            IBindParameter bindParam;
+            if (statement.BindParameters.TryGetValue(name, out bindParam))
+            {
+                if (value.IsEmpty)
+                {
+                    bindParam.BindNull();
+                }
+                else
+                {
+                    bindParam.Bind(value.ToString());
+                }
+            }
+            else
+            {
+                CheckName(name);
+            }
+        }
+
         public static void TryBind(this IStatement statement, string name, bool value)
         {
             IBindParameter bindParam;
@@ -269,6 +305,43 @@ namespace Emby.AutoOrganize.Data
             {
                 CheckName(name);
             }
+        }
+
+        public static void TryBind(this IStatement statement, string name, DateTimeOffset? value)
+        {
+            if (value.HasValue)
+            {
+                TryBind(statement, name, value.Value);
+            }
+            else
+            {
+                TryBindNull(statement, name);
+            }
+        }
+
+        public static void TryBind(this IStatement statement, string name, DateTimeOffset value, bool enableMsPrecision)
+        {
+            IBindParameter bindParam;
+            if (statement.BindParameters.TryGetValue(name, out bindParam))
+            {
+                if (enableMsPrecision)
+                {
+                    bindParam.Bind(value.ToUnixTimeMilliseconds());
+                }
+                else
+                {
+                    bindParam.Bind(value.ToUnixTimeSeconds());
+                }
+            }
+            else
+            {
+                CheckName(name);
+            }
+        }
+
+        public static void TryBind(this IStatement statement, string name, DateTimeOffset value)
+        {
+            TryBind(statement, name, value, false);
         }
 
         public static void TryBind(this IStatement statement, string name, DateTime value)

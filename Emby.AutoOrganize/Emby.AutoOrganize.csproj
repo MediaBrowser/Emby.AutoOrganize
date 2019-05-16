@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;</TargetFrameworks>
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <FileVersion>1.4.0.0</FileVersion>
+    <AssemblyVersion>1.4.1.0</AssemblyVersion>
+    <FileVersion>1.4.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,10 +35,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MediaBrowser.Naming" Version="1.1.9-beta" />
     <PackageReference Include="mediabrowser.server.core" Version="4.2.0.6-beta" />
-    <PackageReference Include="SQLitePCL.pretty.core" Version="1.1.8" />
+    <PackageReference Include="SQLitePCL.pretty.core" Version="1.1.9" />
     <PackageReference Include="System.Memory" Version="4.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Naming\" />
   </ItemGroup>
 
 </Project>
