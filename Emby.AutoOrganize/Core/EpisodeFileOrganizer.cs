@@ -79,7 +79,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                if (_libraryMonitor.IsPathLocked(path))
+                if (_libraryMonitor.IsPathLocked(path.AsSpan()))
                 {
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";

@@ -63,7 +63,7 @@ namespace Emby.AutoOrganize.Core
 
         private bool IsPathAlreadyInMediaLibrary(string path, List<string> libraryFolderPaths)
         {
-            return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i, path));
+            return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
         }
 
         public async Task Organize(MovieFileOrganizationOptions options, CancellationToken cancellationToken, IProgress<double> progress)

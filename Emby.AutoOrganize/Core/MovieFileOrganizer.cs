@@ -74,7 +74,7 @@ namespace Emby.AutoOrganize.Core
 
             try
             {
-                if (_libraryMonitor.IsPathLocked(path))
+                if (_libraryMonitor.IsPathLocked(path.AsSpan()))
                 {
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
@@ -85,7 +85,7 @@ namespace Emby.AutoOrganize.Core
                 var namingOptions = GetNamingOptionsInternal();
                 var resolver = new VideoResolver(namingOptions);
 
-                var movieInfo = resolver.Resolve(path, false) ??
+                var movieInfo = resolver.Resolve(path.AsSpan(), false) ??
                     new VideoFileInfo();
 
                 var movieName = movieInfo.Name;
