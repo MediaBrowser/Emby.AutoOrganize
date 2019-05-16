@@ -92,7 +92,7 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public async Task Delete(string id)
+        public void Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
@@ -115,7 +115,7 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public async Task DeleteAll()
+        public void DeleteAll()
         {
             using (WriteLock.Write())
             {
@@ -131,7 +131,7 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public async Task DeleteCompleted()
+        public void DeleteCompleted()
         {
             using (WriteLock.Write())
             {
@@ -364,7 +364,7 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public async Task DeleteSmartMatch(string id, string matchString)
+        public void DeleteSmartMatch(string id, string matchString)
         {
             if (string.IsNullOrEmpty(id))
             {

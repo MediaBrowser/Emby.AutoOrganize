@@ -165,7 +165,7 @@ namespace Emby.AutoOrganize.Core
             return movie;
         }
 
-        public async Task<FileOrganizationResult> OrganizeWithCorrection(MovieFileOrganizationRequest request, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
+        public FileOrganizationResult OrganizeWithCorrection(MovieFileOrganizationRequest request, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {
             var result = _organizationService.GetResult(request.ResultId);
 
@@ -197,12 +197,12 @@ namespace Emby.AutoOrganize.Core
                 // We manually set the media as Movie 
                 result.Type = CurrentFileOrganizerType;
 
-                await OrganizeMovie(result.OriginalPath,
-                    movie,
-                    options,
-                    null,
-                    result,
-                    cancellationToken).ConfigureAwait(false);
+                OrganizeMovie(result.OriginalPath,
+                   movie,
+                   options,
+                   null,
+                   result,
+                   cancellationToken);
 
                 _organizationService.SaveResult(result, CancellationToken.None);
             }
@@ -248,29 +248,29 @@ namespace Emby.AutoOrganize.Core
             // We have all the chance that the media type is an Movie
             result.Type = CurrentFileOrganizerType;
 
-            await OrganizeMovie(sourcePath,
-                movie,
-                options,
-                searchResult,
-                result,
-                cancellationToken).ConfigureAwait(false);
+            OrganizeMovie(sourcePath,
+               movie,
+               options,
+               searchResult,
+               result,
+               cancellationToken);
         }
 
-        private async Task OrganizeMovie(string sourcePath,
+        private void OrganizeMovie(string sourcePath,
             Movie movie,
             MovieFileOrganizationOptions options,
             RemoteSearchResult remoteResult,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
-            await OrganizeMovie(sourcePath,
-                movie,
-                options,
-                result,
-                cancellationToken).ConfigureAwait(false);
+            OrganizeMovie(sourcePath,
+               movie,
+               options,
+               result,
+               cancellationToken);
         }
 
-        private async Task OrganizeMovie(string sourcePath,
+        private void OrganizeMovie(string sourcePath,
             Movie movie,
             MovieFileOrganizationOptions options,
             FileOrganizationResult result,

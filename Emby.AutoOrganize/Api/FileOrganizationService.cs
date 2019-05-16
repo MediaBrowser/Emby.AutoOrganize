@@ -171,24 +171,21 @@ namespace Emby.AutoOrganize.Api
 
         public void Delete(DeleteOriginalFile request)
         {
-            var task = InternalFileOrganizationService.DeleteOriginalFile(request.Id);
+            InternalFileOrganizationService.DeleteOriginalFile(request.Id);
 
-            Task.WaitAll(task);
         }
 
         public void Delete(ClearOrganizationLog request)
         {
-            var task = InternalFileOrganizationService.ClearLog();
+            InternalFileOrganizationService.ClearLog();
 
-            Task.WaitAll(task);
         }
 
 
         public void Delete(ClearOrganizationCompletedLog request)
         {
-            var task = InternalFileOrganizationService.ClearCompleted();
+            InternalFileOrganizationService.ClearCompleted();
 
-            Task.WaitAll(task);
         }
 
 
@@ -241,7 +238,7 @@ namespace Emby.AutoOrganize.Api
             }
 
             // Don't await this
-            var task = InternalFileOrganizationService.PerformOrganization(new MovieFileOrganizationRequest
+            InternalFileOrganizationService.PerformOrganization(new MovieFileOrganizationRequest
             {
                 ResultId = request.Id,
                 MovieId = request.MovieId,
@@ -250,10 +247,6 @@ namespace Emby.AutoOrganize.Api
                 NewMovieProviderIds = dicNewProviderIds,
                 TargetFolder = request.TargetFolder
             });
-
-            // Async processing (close dialog early instead of waiting until the file has been copied)
-            // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
-            task.Wait(2000);
         }
 
         public object Get(GetSmartMatchInfos request)

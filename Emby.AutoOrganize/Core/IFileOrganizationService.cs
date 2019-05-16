@@ -24,19 +24,19 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="resultId">The result identifier.</param>
         /// <returns>Task.</returns>
-        Task DeleteOriginalFile(string resultId);
+        void DeleteOriginalFile(string resultId);
 
         /// <summary>
         /// Clears the log.
         /// </summary>
         /// <returns>Task.</returns>
-        Task ClearLog();
+        void ClearLog();
 
         /// <summary>
         /// Clears the log.
         /// </summary>
         /// <returns>Task.</returns>
-        Task ClearCompleted();
+        void ClearCompleted();
 
         /// <summary>
         /// Performs the organization.
@@ -57,7 +57,7 @@ namespace Emby.AutoOrganize.Core
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns>Task.</returns>
-        Task PerformOrganization(MovieFileOrganizationRequest request);
+        void PerformOrganization(MovieFileOrganizationRequest request);
 
         /// <summary>
         /// Gets the results.

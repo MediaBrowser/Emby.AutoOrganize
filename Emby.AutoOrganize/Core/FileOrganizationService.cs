@@ -111,7 +111,7 @@ namespace Emby.AutoOrganize.Core
             return GetResult(id);
         }
 
-        public async Task DeleteOriginalFile(string resultId)
+        public void DeleteOriginalFile(string resultId)
         {
             var result = _repo.GetResult(resultId);
 
@@ -135,7 +135,7 @@ namespace Emby.AutoOrganize.Core
                 RemoveFromInprogressList(result);
             }
 
-            await _repo.Delete(resultId);
+            _repo.Delete(resultId);
 
             EventHelper.FireEventIfNotNull(ItemRemoved, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
         }
@@ -184,15 +184,15 @@ namespace Emby.AutoOrganize.Core
             }
         }
 
-        public async Task ClearLog()
+        public void ClearLog()
         {
-            await _repo.DeleteAll();
+            _repo.DeleteAll();
             EventHelper.FireEventIfNotNull(LogReset, this, EventArgs.Empty, _logger);
         }
 
-        public async Task ClearCompleted()
+        public void ClearCompleted()
         {
-            await _repo.DeleteCompleted();
+            _repo.DeleteCompleted();
             EventHelper.FireEventIfNotNull(LogReset, this, EventArgs.Empty, _logger);
         }
 
@@ -210,13 +210,13 @@ namespace Emby.AutoOrganize.Core
             }
         }
 
-        public async Task PerformOrganization(MovieFileOrganizationRequest request)
+        public void PerformOrganization(MovieFileOrganizationRequest request)
         {
             var organizer = new MovieFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
                 _libraryMonitor, _providerManager);
 
             var options = GetAutoOrganizeOptions();
-            var result = await organizer.OrganizeWithCorrection(request, options.MovieOptions, CancellationToken.None).ConfigureAwait(false);
+            var result = organizer.OrganizeWithCorrection(request, options.MovieOptions, CancellationToken.None);
 
             if (result.Status != FileSortingStatus.Success)
             {
