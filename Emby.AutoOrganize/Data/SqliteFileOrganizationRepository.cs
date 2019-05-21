@@ -188,7 +188,7 @@ namespace Emby.AutoOrganize.Data
                     int count;
                     using (var statement = connection.PrepareStatement("select count (ResultId) from FileOrganizerResults"))
                     {
-                        count = statement.ExecuteQuery().SelectScalarInt().First();
+                        count = statement.ExecuteQuery().First().GetInt(0);
                     }
 
                     return new QueryResult<FileOrganizationResult>()
@@ -224,81 +224,81 @@ namespace Emby.AutoOrganize.Data
                 }
             }
         }
-        public FileOrganizationResult GetResult(IReadOnlyList<IResultSetValue> reader)
+        public FileOrganizationResult GetResult(IResultSet reader)
         {
             var index = 0;
 
             var result = new FileOrganizationResult
             {
-                Id = reader[0].ReadGuidFromBlob().ToString("N")
+                Id = reader.GetGuid(0).ToString("N")
             };
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.OriginalPath = reader[index].ToString();
+                result.OriginalPath = reader.GetString(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.TargetPath = reader[index].ToString();
+                result.TargetPath = reader.GetString(index);
             }
 
             index++;
-            result.FileSize = reader[index].ToInt64();
+            result.FileSize = reader.GetInt64(index);
 
             index++;
-            result.Date = reader[index].ReadDateTime();
+            result.Date = reader.ReadDateTime(index);
 
             index++;
-            result.Status = (FileSortingStatus)Enum.Parse(typeof(FileSortingStatus), reader[index].ToString(), true);
+            result.Status = (FileSortingStatus)Enum.Parse(typeof(FileSortingStatus), reader.GetString(index), true);
 
             index++;
-            result.Type = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader[index].ToString(), true);
+            result.Type = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.StatusMessage = reader[index].ToString();
+                result.StatusMessage = reader.GetString(index);
             }
 
             result.OriginalFileName = Path.GetFileName(result.OriginalPath);
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.ExtractedName = reader[index].ToString();
+                result.ExtractedName = reader.GetString(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.ExtractedYear = reader[index].ToInt();
+                result.ExtractedYear = reader.GetInt(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.ExtractedSeasonNumber = reader[index].ToInt();
+                result.ExtractedSeasonNumber = reader.GetInt(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.ExtractedEpisodeNumber = reader[index].ToInt();
+                result.ExtractedEpisodeNumber = reader.GetInt(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.ExtractedEndingEpisodeNumber = reader[index].ToInt();
+                result.ExtractedEndingEpisodeNumber = reader.GetInt(index);
             }
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.DuplicatePaths = reader[index].ToString().Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
+                result.DuplicatePaths = reader.GetString(index).Split('|').Where(i => !string.IsNullOrEmpty(i)).ToList();
             }
 
             return result;
@@ -466,7 +466,7 @@ namespace Emby.AutoOrganize.Data
                     int count;
                     using (var statement = connection.PrepareStatement("select count (Id) from SmartMatch"))
                     {
-                        count = statement.ExecuteQuery().SelectScalarInt().First();
+                        count = statement.ExecuteQuery().First().GetInt(0);
                     }
 
                     return new QueryResult<SmartMatchResult>()
@@ -478,28 +478,28 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        private SmartMatchResult GetResultSmartMatch(IReadOnlyList<IResultSetValue> reader)
+        private SmartMatchResult GetResultSmartMatch(IResultSet reader)
         {
             var index = 0;
 
             var result = new SmartMatchResult
             {
-                Id = reader[0].ReadGuidFromBlob()
+                Id = reader.GetGuid(0)
             };
 
             index++;
-            result.ItemName = reader[index].ToString();
+            result.ItemName = reader.GetString(index);
 
             index++;
-            result.DisplayName = reader[index].ToString();
+            result.DisplayName = reader.GetString(index);
 
             index++;
-            result.OrganizerType = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader[index].ToString(), true);
+            result.OrganizerType = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
 
             index++;
-            if (reader[index].SQLiteType != SQLiteType.Null)
+            if (!reader.IsDBNull(index))
             {
-                result.MatchStrings = _json.DeserializeFromString<List<string>>(reader[index].ToString());
+                result.MatchStrings = _json.DeserializeFromString<List<string>>(reader.GetString(index));
             }
 
             return result;

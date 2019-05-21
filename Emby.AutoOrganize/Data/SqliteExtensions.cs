@@ -5,53 +5,28 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Serialization;
 using SQLitePCL.pretty;
 using System.IO;
+using System.Text;
 
 namespace Emby.AutoOrganize.Data
 {
     public static class SqliteExtensions
     {
-        public static void RunQueries(this SQLiteDatabaseConnection connection, string[] queries)
+        public static void RunQueries(this IDatabaseConnection db, string[] queries)
         {
-            connection.RunInTransaction(conn =>
+            db.BeginTransaction(TransactionMode.Deferred);
+
+            try
             {
-                //foreach (var query in queries)
-                //{
-                //    conn.Execute(query);
-                //}
-                conn.ExecuteAll(string.Join(";", queries));
-            });
-        }
+                db.ExecuteAll(string.Join(";", queries));
 
-        public static byte[] ToGuidBlob(this string str)
-        {
-            return ToGuidBlob(new Guid(str));
-        }
+                db.CommitTransaction();
+            }
+            catch (Exception)
+            {
+                db.RollbackTransaction();
 
-        public static byte[] ToGuidBlob(this Guid guid)
-        {
-            return guid.ToByteArray();
-        }
-
-        public static Guid ReadGuidFromBlob(this IResultSetValue result)
-        {
-#if NETCOREAPP
-            return new Guid(result.ToBlob());
-#else
-            return new Guid(result.ToBlob().ToArray());
-#endif
-        }
-
-        public static string ToDateTimeParamValue(this DateTime dateValue)
-        {
-            var kind = DateTimeKind.Utc;
-
-            return (dateValue.Kind == DateTimeKind.Unspecified)
-                ? DateTime.SpecifyKind(dateValue, kind).ToString(
-                    GetDateTimeKindFormat(kind),
-                    CultureInfo.InvariantCulture)
-                : dateValue.ToString(
-                    GetDateTimeKindFormat(dateValue.Kind),
-                    CultureInfo.InvariantCulture);
+                throw;
+            }
         }
 
         private static string GetDateTimeKindFormat(
@@ -100,9 +75,9 @@ namespace Emby.AutoOrganize.Data
         private static string _datetimeFormatUtc = _datetimeFormats[5];
         private static string _datetimeFormatLocal = _datetimeFormats[19];
 
-        public static DateTime ReadDateTime(this IResultSetValue result)
+        public static DateTime ReadDateTime(this IResultSet result, int index)
         {
-            var dateText = result.ToString();
+            var dateText = result.GetString(index);
 
             return DateTime.ParseExact(
                 dateText, _datetimeFormats,
@@ -110,18 +85,50 @@ namespace Emby.AutoOrganize.Data
                 DateTimeStyles.None).ToUniversalTime();
         }
 
-        public static DateTimeOffset ReadDateTimeOffset(this IResultSetValue result)
+        public static ReadOnlySpan<byte> ToGuidBlob(this ReadOnlySpan<char> str)
         {
-            return ReadDateTimeOffset(result, false);
+#if NETCOREAPP
+            return ToGuidBlob(Guid.Parse(str));
+#else
+            return ToGuidBlob(new Guid(str.ToString()));
+#endif
         }
 
-        public static DateTimeOffset ReadDateTimeOffset(this IResultSetValue result, bool enableMsPrecision)
+        public static byte[] ToGuidBlob(this Guid guid)
+        {
+            return guid.ToByteArray();
+        }
+
+        public static byte[] ToGuidBlob(this string str)
+        {
+            return ToGuidBlob(new Guid(str));
+        }
+
+        public static string ToDateTimeParamValue(this DateTime dateValue)
+        {
+            var kind = DateTimeKind.Utc;
+
+            return (dateValue.Kind == DateTimeKind.Unspecified)
+                ? DateTime.SpecifyKind(dateValue, kind).ToString(
+                    GetDateTimeKindFormat(kind),
+                    CultureInfo.InvariantCulture)
+                : dateValue.ToString(
+                    GetDateTimeKindFormat(dateValue.Kind),
+                    CultureInfo.InvariantCulture);
+        }
+
+        public static DateTimeOffset ReadDateTimeOffset(this IResultSet result, int index)
+        {
+            return ReadDateTimeOffset(result, index, false);
+        }
+
+        public static DateTimeOffset ReadDateTimeOffset(this IResultSet result, int index, bool enableMsPrecision)
         {
             if (enableMsPrecision)
             {
-                return DateTimeOffset.FromUnixTimeMilliseconds(result.ToInt64());
+                return DateTimeOffset.FromUnixTimeMilliseconds(result.GetInt64(index));
             }
-            return DateTimeOffset.FromUnixTimeSeconds(result.ToInt64());
+            return DateTimeOffset.FromUnixTimeSeconds(result.GetInt64(index));
         }
 
         /// <summary>
@@ -129,67 +136,33 @@ namespace Emby.AutoOrganize.Data
         /// </summary>
         /// <returns>System.Byte[][].</returns>
         /// <exception cref="System.ArgumentNullException">obj</exception>
-        public static byte[] SerializeToBytes(this IJsonSerializer json, object obj)
+        public static ReadOnlySpan<byte> SerializeToBytes(this IJsonSerializer json, object obj)
         {
             using (var stream = new MemoryStream())
             {
                 json.SerializeToStream(obj, stream);
-                return stream.ToArray();
+                return stream.ToArray().AsSpan();
             }
         }
 
-        public static void Attach(ManagedConnection db, string path, string alias)
+        public static void Attach(IDatabaseConnection db, string path, string alias)
         {
             var commandText = string.Format("attach @path as {0};", alias);
 
-            using (var statement = db.PrepareStatement(commandText))
+            using (var statement = db.PrepareStatement(Encoding.UTF8.GetBytes(commandText).AsSpan()))
             {
                 statement.TryBind("@path", path);
                 statement.MoveNext();
             }
         }
 
-        public static bool IsDBNull(this IReadOnlyList<IResultSetValue> result, int index)
+        public static Guid GetGuid(this IResultSet result, int index)
         {
-            return result[index].SQLiteType == SQLiteType.Null;
-        }
-
-        public static string GetString(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToString();
-        }
-        public static ReadOnlyMemory<char> GetReadOnlyMemoryChar(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToReadOnlyMemoryChar();
-        }
-        public static ReadOnlySpan<char> GetReadOnlySpanChar(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToReadOnlySpanChar();
-        }
-
-        public static bool GetBoolean(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToBool();
-        }
-
-        public static int GetInt32(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToInt();
-        }
-
-        public static long GetInt64(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToInt64();
-        }
-
-        public static float GetFloat(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ToFloat();
-        }
-
-        public static Guid GetGuid(this IReadOnlyList<IResultSetValue> result, int index)
-        {
-            return result[index].ReadGuidFromBlob();
+#if NETCOREAPP
+            return new Guid(result.GetBlob(index));
+#else
+            return new Guid(result.GetBlob(index).ToArray());
+#endif
         }
 
         private static void CheckName(string name)
@@ -200,6 +173,12 @@ namespace Emby.AutoOrganize.Data
                 throw new Exception("Invalid param name: " + name);
             }
 #endif
+        }
+
+        public static void TryBind(this IStatement statement, int index, double value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            bindParam.Bind(value);
         }
 
         public static void TryBind(this IStatement statement, string name, double value)
@@ -226,7 +205,7 @@ namespace Emby.AutoOrganize.Data
                 }
                 else
                 {
-                    bindParam.Bind(value);
+                    bindParam.Bind(value.AsSpan());
                 }
             }
             else
@@ -235,7 +214,20 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static void TryBind(this IStatement statement, string name, ReadOnlyMemory<char> value)
+        public static void TryBind(this IStatement statement, int index, string value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            if (value == null)
+            {
+                bindParam.BindNull();
+            }
+            else
+            {
+                bindParam.Bind(value.AsSpan());
+            }
+        }
+
+        public static void TryBind(this IStatement statement, string name, ReadOnlySpan<char> value)
         {
             IBindParameter bindParam;
             if (statement.BindParameters.TryGetValue(name, out bindParam))
@@ -246,13 +238,19 @@ namespace Emby.AutoOrganize.Data
                 }
                 else
                 {
-                    bindParam.Bind(value.ToString());
+                    bindParam.Bind(value);
                 }
             }
             else
             {
                 CheckName(name);
             }
+        }
+
+        public static void TryBind(this IStatement statement, int index, bool value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            bindParam.Bind(value);
         }
 
         public static void TryBind(this IStatement statement, string name, bool value)
@@ -281,6 +279,12 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, int index, int value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            bindParam.Bind(value);
+        }
+
         public static void TryBind(this IStatement statement, string name, int value)
         {
             IBindParameter bindParam;
@@ -292,6 +296,12 @@ namespace Emby.AutoOrganize.Data
             {
                 CheckName(name);
             }
+        }
+
+        public static void TryBind(this IStatement statement, int index, Guid value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            bindParam.Bind(value.ToGuidBlob());
         }
 
         public static void TryBind(this IStatement statement, string name, Guid value)
@@ -307,6 +317,18 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, int index, DateTimeOffset? value)
+        {
+            if (value.HasValue)
+            {
+                TryBind(statement, index, value.Value);
+            }
+            else
+            {
+                TryBindNull(statement, index);
+            }
+        }
+
         public static void TryBind(this IStatement statement, string name, DateTimeOffset? value)
         {
             if (value.HasValue)
@@ -316,6 +338,20 @@ namespace Emby.AutoOrganize.Data
             else
             {
                 TryBindNull(statement, name);
+            }
+        }
+
+        public static void TryBind(this IStatement statement, int index, DateTimeOffset value, bool enableMsPrecision)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+
+            if (enableMsPrecision)
+            {
+                bindParam.Bind(value.ToUnixTimeMilliseconds());
+            }
+            else
+            {
+                bindParam.Bind(value.ToUnixTimeSeconds());
             }
         }
 
@@ -339,22 +375,21 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, int index, DateTimeOffset value)
+        {
+            TryBind(statement, index, value, false);
+        }
+
         public static void TryBind(this IStatement statement, string name, DateTimeOffset value)
         {
             TryBind(statement, name, value, false);
         }
 
-        public static void TryBind(this IStatement statement, string name, DateTime value)
+        public static void TryBind(this IStatement statement, int index, long value)
         {
-            IBindParameter bindParam;
-            if (statement.BindParameters.TryGetValue(name, out bindParam))
-            {
-                bindParam.Bind(value.ToDateTimeParamValue());
-            }
-            else
-            {
-                CheckName(name);
-            }
+            IBindParameter bindParam = statement.BindParameters[index];
+
+            bindParam.Bind(value);
         }
 
         public static void TryBind(this IStatement statement, string name, long value)
@@ -370,7 +405,13 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static void TryBind(this IStatement statement, string name, byte[] value)
+        public static void TryBind(this IStatement statement, int index, ReadOnlySpan<byte> value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            bindParam.Bind(value);
+        }
+
+        public static void TryBind(this IStatement statement, string name, ReadOnlySpan<byte> value)
         {
             IBindParameter bindParam;
             if (statement.BindParameters.TryGetValue(name, out bindParam))
@@ -381,6 +422,13 @@ namespace Emby.AutoOrganize.Data
             {
                 CheckName(name);
             }
+        }
+
+        public static void TryBindNull(this IStatement statement, int index)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+
+            bindParam.BindNull();
         }
 
         public static void TryBindNull(this IStatement statement, string name)
@@ -396,18 +444,6 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static void TryBind(this IStatement statement, string name, DateTime? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, name, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, name);
-            }
-        }
-
         public static void TryBind(this IStatement statement, string name, Guid? value)
         {
             if (value.HasValue)
@@ -420,6 +456,18 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, int index, double? value)
+        {
+            if (value.HasValue)
+            {
+                TryBind(statement, index, value.Value);
+            }
+            else
+            {
+                TryBindNull(statement, index);
+            }
+        }
+
         public static void TryBind(this IStatement statement, string name, double? value)
         {
             if (value.HasValue)
@@ -429,6 +477,18 @@ namespace Emby.AutoOrganize.Data
             else
             {
                 TryBindNull(statement, name);
+            }
+        }
+
+        public static void TryBind(this IStatement statement, int index, int? value)
+        {
+            if (value.HasValue)
+            {
+                TryBind(statement, index, value.Value);
+            }
+            else
+            {
+                TryBindNull(statement, index);
             }
         }
 
@@ -456,6 +516,18 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static void TryBind(this IStatement statement, int index, bool? value)
+        {
+            if (value.HasValue)
+            {
+                TryBind(statement, index, value.Value);
+            }
+            else
+            {
+                TryBindNull(statement, index);
+            }
+        }
+
         public static void TryBind(this IStatement statement, string name, bool? value)
         {
             if (value.HasValue)
@@ -468,7 +540,7 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static IEnumerable<IReadOnlyList<IResultSetValue>> ExecuteQuery(
+        public static IEnumerable<IResultSet> ExecuteQuery(
             this IStatement This)
         {
             while (This.MoveNext())

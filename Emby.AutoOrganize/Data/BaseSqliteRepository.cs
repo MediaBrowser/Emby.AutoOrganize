@@ -7,6 +7,7 @@ using MediaBrowser.Model.Logging;
 using SQLitePCL.pretty;
 using System.Linq;
 using SQLitePCL;
+using System.Text;
 
 namespace Emby.AutoOrganize.Data
 {
@@ -34,21 +35,23 @@ namespace Emby.AutoOrganize.Data
             get { return TransactionMode.Deferred; }
         }
 
+        internal static int ThreadSafeMode { get; set; }
+
         private static bool _versionLogged;
 
         private string _defaultWal;
-        protected ManagedConnection _connection;
+        protected IDatabaseConnection _connection;
 
         protected virtual bool EnableSingleConnection
         {
             get { return true; }
         }
 
-        protected ManagedConnection CreateConnection(bool isReadOnly = false)
+        protected IDatabaseConnection CreateConnection(bool isReadOnly = false)
         {
             if (_connection != null)
             {
-                return _connection;
+                return _connection.Clone(false);
             }
 
             lock (WriteLock)
@@ -87,13 +90,20 @@ namespace Emby.AutoOrganize.Data
 
                 connectionFlags |= ConnectionFlags.NoMutex;
 
-                var db = SQLite3.Open(DbFilePath, connectionFlags, null);
+                var db = SQLite3.Open(DbFilePath, connectionFlags, null, false);
 
                 try
                 {
                     if (string.IsNullOrWhiteSpace(_defaultWal))
                     {
-                        _defaultWal = db.Query("PRAGMA journal_mode").SelectScalarString().First();
+                        using (var statement = PrepareStatement(db, "PRAGMA journal_mode".AsSpan()))
+                        {
+                            foreach (var row in statement.ExecuteQuery())
+                            {
+                                _defaultWal = row.GetString(0);
+                                break;
+                            }
+                        }
 
                         Logger.Info("Default journal_mode for {0} is {1}", DbFilePath, _defaultWal);
                     }
@@ -135,73 +145,113 @@ namespace Emby.AutoOrganize.Data
                     throw;
                 }
 
-                _connection = new ManagedConnection(db, false);
+                _connection = db;
 
-                return _connection;
+                return db;
             }
         }
 
-        public IStatement PrepareStatement(ManagedConnection connection, string sql)
+        protected static ReadOnlyMemory<byte> GetBytes(string sql)
         {
-            return connection.PrepareStatement(sql);
-        }
-
-        public IStatement PrepareStatementSafe(ManagedConnection connection, string sql)
-        {
-            return connection.PrepareStatement(sql);
+            return System.Text.Encoding.UTF8.GetBytes(sql).AsMemory();
         }
 
         public IStatement PrepareStatement(IDatabaseConnection connection, string sql)
         {
-            return connection.PrepareStatement(sql);
+            return PrepareStatement(connection, sql.AsSpan());
         }
 
-        public IStatement PrepareStatementSafe(IDatabaseConnection connection, string sql)
+        public IStatement PrepareStatement(IDatabaseConnection connection, ReadOnlySpan<char> sql)
         {
-            return connection.PrepareStatement(sql);
+            var encoding = System.Text.Encoding.UTF8;
+
+#if NETCOREAPP
+            var byteSpan = new Span<byte>(new byte[encoding.GetMaxByteCount(sql.Length)]);
+            var length = encoding.GetBytes(sql, byteSpan);
+            byteSpan = byteSpan.Slice(0, length);
+            return connection.PrepareStatement(byteSpan);
+#else
+            return connection.PrepareStatement(encoding.GetBytes(sql.ToString()).AsSpan());
+#endif
+        }
+
+        public IStatement PrepareStatement(IDatabaseConnection connection, ReadOnlySpan<byte> sqlUtf8)
+        {
+            return connection.PrepareStatement(sqlUtf8);
         }
 
         public IStatement[] PrepareAll(IDatabaseConnection connection, List<string> sql)
         {
-            return PrepareAllSafe(connection, sql);
-        }
+            var list = new List<ReadOnlyMemory<byte>>();
 
-        public IStatement[] PrepareAllSafe(IDatabaseConnection connection, List<string> sql)
-        {
-            return sql.Select(connection.PrepareStatement).ToArray();
-        }
-
-        public IStatement[] PrepareAllSafe(IDatabaseConnection connection, string[] sql)
-        {
-            return sql.Select(connection.PrepareStatement).ToArray();
-        }
-
-        protected bool TableExists(ManagedConnection connection, string name)
-        {
-            return connection.RunInTransaction(db =>
+            var length = sql.Count;
+            for (var i = 0; i < length; i++)
             {
-                return TableExists(db, name);
+                list.Add(System.Text.Encoding.UTF8.GetBytes(sql[i]).AsMemory());
+            }
 
-            }, ReadTransactionMode);
+            return PrepareAll(connection, list);
+        }
+
+        public IStatement[] PrepareAll(IDatabaseConnection connection, List<ReadOnlyMemory<byte>> sqlUtf8)
+        {
+            var length = sqlUtf8.Count;
+            var result = new IStatement[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                result[i] = connection.PrepareStatement(sqlUtf8[i].Span);
+            }
+
+            return result;
+        }
+
+        public IStatement[] PrepareAll(IDatabaseConnection connection, ReadOnlyMemory<byte>[] sqlUtf8)
+        {
+            var length = sqlUtf8.Length;
+            var result = new IStatement[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                result[i] = connection.PrepareStatement(sqlUtf8[i].Span);
+            }
+
+            return result;
         }
 
         protected bool TableExists(IDatabaseConnection db, string name)
         {
-            using (var statement = PrepareStatement(db, "select DISTINCT tbl_name from sqlite_master"))
+            db.BeginTransaction(ReadTransactionMode);
+
+            try
             {
-                foreach (var row in statement.ExecuteQuery())
+                var retval = false;
+
+                using (var statement = PrepareStatement(db, "select DISTINCT tbl_name from sqlite_master".AsSpan()))
                 {
-                    if (string.Equals(name, row.GetString(0), StringComparison.OrdinalIgnoreCase))
+                    foreach (var row in statement.ExecuteQuery())
                     {
-                        return true;
+                        if (string.Equals(name, row.GetString(0), StringComparison.OrdinalIgnoreCase))
+                        {
+                            retval = true;
+                            break;
+                        }
                     }
                 }
-            }
 
-            return false;
+                db.CommitTransaction();
+
+                return retval;
+            }
+            catch (Exception)
+            {
+                db.RollbackTransaction();
+
+                throw;
+            }
         }
 
-        protected void RunDefaultInitialization(ManagedConnection db)
+        protected void RunDefaultInitialization(IDatabaseConnection db)
         {
             var queries = new List<string>
             {
@@ -226,8 +276,7 @@ namespace Emby.AutoOrganize.Data
                 });
             }
 
-            db.ExecuteAll(string.Join(";", queries.ToArray()));
-            Logger.Info("PRAGMA synchronous=" + db.Query("PRAGMA synchronous").SelectScalarString().First());
+            db.ExecuteAll(GetBytes(string.Join(";", queries.ToArray())));
         }
 
         protected virtual bool EnableTempStoreMemory
@@ -318,13 +367,16 @@ namespace Emby.AutoOrganize.Data
         {
             var list = new List<string>();
 
-            foreach (var row in connection.Query("PRAGMA table_info(" + table + ")"))
+            using (var statement = PrepareStatement(connection, "PRAGMA table_info(" + table + ")"))
             {
-                if (row[1].SQLiteType != SQLiteType.Null)
+                foreach (var row in statement.ExecuteQuery())
                 {
-                    var name = row[1].ToString();
+                    if (!row.IsDBNull(1))
+                    {
+                        var name = row.GetString(1);
 
-                    list.Add(name);
+                        list.Add(name);
+                    }
                 }
             }
 
