@@ -182,15 +182,15 @@ namespace Emby.AutoOrganize.Data
 
         public IStatement[] PrepareAll(IDatabaseConnection connection, List<string> sql)
         {
-            var list = new List<ReadOnlyMemory<byte>>();
-
             var length = sql.Count;
+            var result = new IStatement[length];
+
             for (var i = 0; i < length; i++)
             {
-                list.Add(System.Text.Encoding.UTF8.GetBytes(sql[i]).AsMemory());
+                result[i] = connection.PrepareStatement(sql[i]);
             }
 
-            return PrepareAll(connection, list);
+            return result;
         }
 
         public IStatement[] PrepareAll(IDatabaseConnection connection, List<ReadOnlyMemory<byte>> sqlUtf8)
@@ -219,25 +219,29 @@ namespace Emby.AutoOrganize.Data
             return result;
         }
 
+        protected bool TableExistsInTransaction(IDatabaseConnection db, string name)
+        {
+            using (var statement = PrepareStatement(db, "select DISTINCT tbl_name from sqlite_master".AsSpan()))
+            {
+                foreach (var row in statement.ExecuteQuery())
+                {
+                    if (string.Equals(name, row.GetString(0), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         protected bool TableExists(IDatabaseConnection db, string name)
         {
             db.BeginTransaction(ReadTransactionMode);
 
             try
             {
-                var retval = false;
-
-                using (var statement = PrepareStatement(db, "select DISTINCT tbl_name from sqlite_master".AsSpan()))
-                {
-                    foreach (var row in statement.ExecuteQuery())
-                    {
-                        if (string.Equals(name, row.GetString(0), StringComparison.OrdinalIgnoreCase))
-                        {
-                            retval = true;
-                            break;
-                        }
-                    }
-                }
+                var retval = TableExistsInTransaction(db, name);
 
                 db.CommitTransaction();
 
@@ -276,7 +280,7 @@ namespace Emby.AutoOrganize.Data
                 });
             }
 
-            db.ExecuteAll(GetBytes(string.Join(";", queries.ToArray())));
+            db.ExecuteAll(string.Join(";", queries.ToArray()));
         }
 
         protected virtual bool EnableTempStoreMemory

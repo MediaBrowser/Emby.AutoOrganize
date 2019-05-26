@@ -29,6 +29,38 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
+        public static ReadOnlySpan<byte> ToGuidBlob(this ReadOnlySpan<char> str)
+        {
+#if NETCOREAPP
+            return ToGuidBlob(Guid.Parse(str));
+#else
+            return ToGuidBlob(new Guid(str.ToString()));
+#endif
+        }
+
+        public static ReadOnlySpan<byte> ToGuidBlob(this Guid guid)
+        {
+            return guid.ToByteArray().AsSpan();
+        }
+
+        public static ReadOnlySpan<byte> ToGuidBlob(this string str)
+        {
+            return ToGuidBlob(new Guid(str));
+        }
+
+        public static string ToDateTimeParamValue(this DateTime dateValue)
+        {
+            var kind = DateTimeKind.Utc;
+
+            return (dateValue.Kind == DateTimeKind.Unspecified)
+                ? DateTime.SpecifyKind(dateValue, kind).ToString(
+                    GetDateTimeKindFormat(kind),
+                    CultureInfo.InvariantCulture)
+                : dateValue.ToString(
+                    GetDateTimeKindFormat(dateValue.Kind),
+                    CultureInfo.InvariantCulture);
+        }
+
         private static string GetDateTimeKindFormat(
            DateTimeKind kind)
         {
@@ -85,38 +117,6 @@ namespace Emby.AutoOrganize.Data
                 DateTimeStyles.None).ToUniversalTime();
         }
 
-        public static ReadOnlySpan<byte> ToGuidBlob(this ReadOnlySpan<char> str)
-        {
-#if NETCOREAPP
-            return ToGuidBlob(Guid.Parse(str));
-#else
-            return ToGuidBlob(new Guid(str.ToString()));
-#endif
-        }
-
-        public static byte[] ToGuidBlob(this Guid guid)
-        {
-            return guid.ToByteArray();
-        }
-
-        public static byte[] ToGuidBlob(this string str)
-        {
-            return ToGuidBlob(new Guid(str));
-        }
-
-        public static string ToDateTimeParamValue(this DateTime dateValue)
-        {
-            var kind = DateTimeKind.Utc;
-
-            return (dateValue.Kind == DateTimeKind.Unspecified)
-                ? DateTime.SpecifyKind(dateValue, kind).ToString(
-                    GetDateTimeKindFormat(kind),
-                    CultureInfo.InvariantCulture)
-                : dateValue.ToString(
-                    GetDateTimeKindFormat(dateValue.Kind),
-                    CultureInfo.InvariantCulture);
-        }
-
         public static DateTimeOffset ReadDateTimeOffset(this IResultSet result, int index)
         {
             return ReadDateTimeOffset(result, index, false);
@@ -165,12 +165,12 @@ namespace Emby.AutoOrganize.Data
 #endif
         }
 
-        private static void CheckName(string name)
+        private static void CheckName(IStatement statement, string name)
         {
 #if DEBUG
             //if (!name.IndexOf("@", StringComparison.OrdinalIgnoreCase) != 0)
             {
-                throw new Exception("Invalid param name: " + name);
+                throw new Exception("Invalid param name: " + name + ". SQL: " + statement.SQL);
             }
 #endif
         }
@@ -190,7 +190,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -210,7 +210,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -227,30 +227,23 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static void TryBind(this IStatement statement, string name, ReadOnlySpan<char> value)
-        {
-            IBindParameter bindParam;
-            if (statement.BindParameters.TryGetValue(name, out bindParam))
-            {
-                if (value.IsEmpty)
-                {
-                    bindParam.BindNull();
-                }
-                else
-                {
-                    bindParam.Bind(value);
-                }
-            }
-            else
-            {
-                CheckName(name);
-            }
-        }
-
         public static void TryBind(this IStatement statement, int index, bool value)
         {
             IBindParameter bindParam = statement.BindParameters[index];
             bindParam.Bind(value);
+        }
+
+        public static void TryBind(this IStatement statement, int index, bool? value)
+        {
+            IBindParameter bindParam = statement.BindParameters[index];
+            if (value == null)
+            {
+                bindParam.BindNull();
+            }
+            else
+            {
+                bindParam.Bind(value.Value);
+            }
         }
 
         public static void TryBind(this IStatement statement, string name, bool value)
@@ -262,20 +255,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, string name, float value)
-        {
-            IBindParameter bindParam;
-            if (statement.BindParameters.TryGetValue(name, out bindParam))
-            {
-                bindParam.Bind(value);
-            }
-            else
-            {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -294,7 +274,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -304,16 +284,16 @@ namespace Emby.AutoOrganize.Data
             bindParam.Bind(value.ToGuidBlob());
         }
 
-        public static void TryBind(this IStatement statement, string name, Guid value)
+        public static void TryBind(this IStatement statement, string name, ReadOnlySpan<byte> value)
         {
             IBindParameter bindParam;
             if (statement.BindParameters.TryGetValue(name, out bindParam))
             {
-                bindParam.Bind(value.ToGuidBlob());
+                bindParam.Bind(value);
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -326,18 +306,6 @@ namespace Emby.AutoOrganize.Data
             else
             {
                 TryBindNull(statement, index);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, string name, DateTimeOffset? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, name, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, name);
             }
         }
 
@@ -371,7 +339,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -401,7 +369,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
+                CheckName(statement, name);
             }
         }
 
@@ -409,19 +377,6 @@ namespace Emby.AutoOrganize.Data
         {
             IBindParameter bindParam = statement.BindParameters[index];
             bindParam.Bind(value);
-        }
-
-        public static void TryBind(this IStatement statement, string name, ReadOnlySpan<byte> value)
-        {
-            IBindParameter bindParam;
-            if (statement.BindParameters.TryGetValue(name, out bindParam))
-            {
-                bindParam.Bind(value);
-            }
-            else
-            {
-                CheckName(name);
-            }
         }
 
         public static void TryBindNull(this IStatement statement, int index)
@@ -440,19 +395,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                CheckName(name);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, string name, Guid? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, name, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, name);
+                CheckName(statement, name);
             }
         }
 
@@ -465,18 +408,6 @@ namespace Emby.AutoOrganize.Data
             else
             {
                 TryBindNull(statement, index);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, string name, double? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, name, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, name);
             }
         }
 
@@ -501,30 +432,6 @@ namespace Emby.AutoOrganize.Data
             else
             {
                 TryBindNull(statement, name);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, string name, float? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, name, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, name);
-            }
-        }
-
-        public static void TryBind(this IStatement statement, int index, bool? value)
-        {
-            if (value.HasValue)
-            {
-                TryBind(statement, index, value.Value);
-            }
-            else
-            {
-                TryBindNull(statement, index);
             }
         }
 
