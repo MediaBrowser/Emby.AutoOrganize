@@ -171,7 +171,7 @@ namespace Emby.AutoOrganize.Data
             byteSpan = byteSpan.Slice(0, length);
             return connection.PrepareStatement(byteSpan);
 #else
-            return connection.PrepareStatement(encoding.GetBytes(sql.ToString()).AsSpan());
+            return connection.PrepareStatement(sql.ToString());
 #endif
         }
 

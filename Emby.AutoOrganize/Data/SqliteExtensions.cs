@@ -145,17 +145,6 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        public static void Attach(IDatabaseConnection db, string path, string alias)
-        {
-            var commandText = string.Format("attach @path as {0};", alias);
-
-            using (var statement = db.PrepareStatement(Encoding.UTF8.GetBytes(commandText).AsSpan()))
-            {
-                statement.TryBind("@path", path);
-                statement.MoveNext();
-            }
-        }
-
         public static Guid GetGuid(this IResultSet result, int index)
         {
 #if NETCOREAPP
