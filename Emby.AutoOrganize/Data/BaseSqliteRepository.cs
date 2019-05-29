@@ -151,11 +151,6 @@ namespace Emby.AutoOrganize.Data
             }
         }
 
-        protected static ReadOnlyMemory<byte> GetBytes(string sql)
-        {
-            return System.Text.Encoding.UTF8.GetBytes(sql).AsMemory();
-        }
-
         public IStatement PrepareStatement(IDatabaseConnection connection, string sql)
         {
             return PrepareStatement(connection, sql.AsSpan());
@@ -163,16 +158,7 @@ namespace Emby.AutoOrganize.Data
 
         public IStatement PrepareStatement(IDatabaseConnection connection, ReadOnlySpan<char> sql)
         {
-            var encoding = System.Text.Encoding.UTF8;
-
-#if NETCOREAPP
-            var byteSpan = new Span<byte>(new byte[encoding.GetMaxByteCount(sql.Length)]);
-            var length = encoding.GetBytes(sql, byteSpan);
-            byteSpan = byteSpan.Slice(0, length);
-            return connection.PrepareStatement(byteSpan);
-#else
             return connection.PrepareStatement(sql.ToString());
-#endif
         }
 
         public IStatement PrepareStatement(IDatabaseConnection connection, ReadOnlySpan<byte> sqlUtf8)
