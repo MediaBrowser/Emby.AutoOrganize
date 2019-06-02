@@ -67,7 +67,7 @@ namespace Emby.AutoOrganize.Core
                     return result;
                 }
 
-                var movieInfo = _libraryManager.IsVideoFile(path.AsSpan()) ? _libraryManager.ParseName(path.AsSpan()) : new ItemLookupInfo();
+                var movieInfo = _libraryManager.IsVideoFile(path.AsSpan()) ? _libraryManager.ParseName(Path.GetFileName(path).AsSpan()) : new ItemLookupInfo();
 
                 var movieName = movieInfo.Name;
 
