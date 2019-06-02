@@ -211,15 +211,17 @@ namespace Emby.AutoOrganize.Core
             {
                 string metadataLanguage = null;
                 string metadataCountryCode = null;
+                BaseItem targetFolder = null;
 
                 if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
                 {
-                    var folder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
-                    if (folder != null)
-                    {
-                        metadataLanguage = folder.GetPreferredMetadataLanguage();
-                        metadataCountryCode = folder.GetPreferredMetadataCountryCode();
-                    }
+                    targetFolder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
+                }
+
+                if (targetFolder != null)
+                {
+                    metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
+                    metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
                 }
 
                 var seriesInfo = new SeriesInfo
@@ -249,7 +251,7 @@ namespace Emby.AutoOrganize.Core
                         TargetFolder = options.DefaultSeriesLibraryPath
                     };
 
-                    return CreateNewSeries(organizationRequest, finalResult, options, cancellationToken);
+                    return CreateNewSeries(organizationRequest, targetFolder, finalResult, options, cancellationToken);
                 }
             }
 
@@ -258,13 +260,14 @@ namespace Emby.AutoOrganize.Core
 
         private Series CreateNewSeries(
             EpisodeFileOrganizationRequest request,
+            BaseItem targetFolder,
             RemoteSearchResult result,
             TvFileOrganizationOptions options,
             CancellationToken cancellationToken)
         {
             Series series;
 
-            series = GetMatchingSeries(request.NewSeriesName, request.NewSeriesYear, request.TargetFolder, null);
+            series = GetMatchingSeries(request.NewSeriesName, request.NewSeriesYear, targetFolder, null);
 
             if (series != null)
             {
@@ -301,7 +304,14 @@ namespace Emby.AutoOrganize.Core
 
                 if (request.NewSeriesProviderIds.Count > 0)
                 {
-                    series = CreateNewSeries(request, null, options, cancellationToken);
+                    BaseItem targetFolder = null;
+
+                    if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                    {
+                        targetFolder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
+                    }
+
+                    series = CreateNewSeries(request, targetFolder, null, options, cancellationToken);
                 }
 
                 if (series == null)
@@ -347,7 +357,7 @@ namespace Emby.AutoOrganize.Core
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
-            var series = GetMatchingSeries(seriesName, seriesYear, "", result);
+            var series = GetMatchingSeries(seriesName, seriesYear, null, result);
 
             if (series == null)
             {
@@ -808,7 +818,7 @@ namespace Emby.AutoOrganize.Core
             return season;
         }
 
-        private Series GetMatchingSeries(string seriesName, int? seriesYear, string targetFolder, FileOrganizationResult result)
+        private Series GetMatchingSeries(string seriesName, int? seriesYear, BaseItem targetFolder, FileOrganizationResult result)
         {
             if (result != null)
             {
@@ -820,14 +830,13 @@ namespace Emby.AutoOrganize.Core
             {
                 IncludeItemTypes = new[] { typeof(Series).Name },
                 Recursive = true,
-                DtoOptions = new DtoOptions(true)
+                DtoOptions = new DtoOptions(true),
+                AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
+                SearchTerm = seriesName,
+                Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
             })
                 .Cast<Series>()
-                .Select(i => NameUtils.GetMatchScore(seriesName, seriesYear, i))
-                .Where(i => i.Item2 > 0)
-                .OrderByDescending(i => i.Item2)
-                .Select(i => i.Item1)
-                .FirstOrDefault(s => s.Path.StartsWith(targetFolder));
+                .FirstOrDefault();
 
             if (series == null)
             {
@@ -839,10 +848,11 @@ namespace Emby.AutoOrganize.Core
                     {
                         IncludeItemTypes = new[] { typeof(Series).Name },
                         Recursive = true,
+                        AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
                         Name = info.ItemName,
                         DtoOptions = new DtoOptions(true)
 
-                    }).Cast<Series>().FirstOrDefault(s => s.Path.StartsWith(targetFolder));
+                    }).Cast<Series>().FirstOrDefault();
                 }
             }
 
