@@ -385,7 +385,6 @@ namespace Emby.AutoOrganize.Core
 
                 var yearInName = parsedName.Year;
                 var nameWithoutYear = parsedName.Name;
-                RemoteSearchResult finalResult = null;
 
                 if (string.IsNullOrWhiteSpace(nameWithoutYear))
                 {
@@ -397,12 +396,25 @@ namespace Emby.AutoOrganize.Core
                     yearInName = movieYear;
                 }
 
-                #region Search One
+                string metadataLanguage = null;
+                string metadataCountryCode = null;
+
+                if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                {
+                    var folder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+                    if (folder != null)
+                    {
+                        metadataLanguage = folder.GetPreferredMetadataLanguage();
+                        metadataCountryCode = folder.GetPreferredMetadataCountryCode();
+                    }
+                }
 
                 var movieInfo = new MovieInfo
                 {
                     Name = nameWithoutYear,
                     Year = yearInName,
+                    MetadataCountryCode = metadataCountryCode,
+                    MetadataLanguage = metadataLanguage
                 };
 
                 var searchResultsTask = await _providerManager.GetRemoteSearchResults<Movie, MovieInfo>(new RemoteSearchQuery<MovieInfo>
@@ -411,27 +423,7 @@ namespace Emby.AutoOrganize.Core
 
                 }, cancellationToken);
 
-                #endregion
-
-                // Group movies by name and year (if 2 movie with the exact same name, the same year ...)
-                var groupedResult = searchResultsTask.GroupBy(p => new { p.Name, p.ProductionYear },
-                    p => p,
-                    (key, g) => new { Key = key, Result = g.ToList() }).ToList();
-
-                if (groupedResult.Count == 1)
-                {
-                    finalResult = groupedResult.First().Result.First();
-                }
-                else if (groupedResult.Count > 1)
-                {
-                    var filtredResult = groupedResult
-                        .Select(i => new { Ref = i, Score = NameUtils.GetMatchScore(nameWithoutYear, yearInName, i.Key.Name, i.Key.ProductionYear) })
-                        .Where(i => i.Score > 0)
-                        .OrderByDescending(i => i.Score)
-                        .Select(i => i.Ref)
-                        .FirstOrDefault();
-                    finalResult = filtredResult?.Result.First();
-                }
+                var finalResult = searchResultsTask.FirstOrDefault();
 
                 if (finalResult != null)
                 {
