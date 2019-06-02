@@ -17,7 +17,6 @@ namespace Emby.AutoOrganize.Data
 {
     public class SqliteFileOrganizationRepository : BaseSqliteRepository, IFileOrganizationRepository, IDisposable
     {
-        private readonly CultureInfo _usCulture = new CultureInfo("en-US");
         private readonly IJsonSerializer _json;
 
         public SqliteFileOrganizationRepository(ILogger logger, IServerApplicationPaths appPaths, IJsonSerializer json) : base(logger)
@@ -165,14 +164,14 @@ namespace Emby.AutoOrganize.Data
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
                         commandText += string.Format(" WHERE ResultId NOT IN (SELECT ResultId FROM FileOrganizerResults ORDER BY OrganizationDate desc LIMIT {0})",
-                            query.StartIndex.Value.ToString(_usCulture));
+                            query.StartIndex.Value.ToString(CultureInfo.InvariantCulture));
                     }
 
                     commandText += " ORDER BY OrganizationDate desc";
 
                     if (query.Limit.HasValue)
                     {
-                        commandText += " LIMIT " + query.Limit.Value.ToString(_usCulture);
+                        commandText += " LIMIT " + query.Limit.Value.ToString(CultureInfo.InvariantCulture);
                     }
 
                     var list = new List<FileOrganizationResult>();
@@ -443,14 +442,14 @@ namespace Emby.AutoOrganize.Data
                     if (query.StartIndex.HasValue && query.StartIndex.Value > 0)
                     {
                         commandText += string.Format(" WHERE Id NOT IN (SELECT Id FROM SmartMatch ORDER BY ItemName desc LIMIT {0})",
-                            query.StartIndex.Value.ToString(_usCulture));
+                            query.StartIndex.Value.ToString(CultureInfo.InvariantCulture));
                     }
 
                     commandText += " ORDER BY ItemName desc";
 
                     if (query.Limit.HasValue)
                     {
-                        commandText += " LIMIT " + query.Limit.Value.ToString(_usCulture);
+                        commandText += " LIMIT " + query.Limit.Value.ToString(CultureInfo.InvariantCulture);
                     }
 
                     var list = new List<SmartMatchResult>();

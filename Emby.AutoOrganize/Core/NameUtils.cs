@@ -8,16 +8,14 @@ namespace Emby.AutoOrganize.Core
 {
     public static class NameUtils
     {
-        private static readonly CultureInfo UsCulture = new CultureInfo("en-US");
-
-        internal static int GetMatchScore(string sortedName, int? year, string itemName, int? itemProductionYear)
+        private static int GetMatchScore(string sortedName, int? year, string itemName, int? itemProductionYear)
         {
             var score = 0;
 
             var seriesNameWithoutYear = itemName;
             if (itemProductionYear.HasValue)
             {
-                seriesNameWithoutYear = seriesNameWithoutYear.Replace(itemProductionYear.Value.ToString(UsCulture), String.Empty);
+                seriesNameWithoutYear = seriesNameWithoutYear.Replace(itemProductionYear.Value.ToString(CultureInfo.InvariantCulture), String.Empty);
             }
 
             if (IsNameMatch(sortedName, seriesNameWithoutYear))

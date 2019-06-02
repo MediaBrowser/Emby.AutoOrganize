@@ -115,17 +115,16 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private Movie CreateNewMovie(MovieFileOrganizationRequest request, FileOrganizationResult result, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
+        private Movie CreateNewMovie(MovieFileOrganizationRequest request, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
         {
             // To avoid Movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
-            var movie = GetMatchingMovie(request.NewMovieName, request.NewMovieYear, request.TargetFolder, result, options);
+            var movie = GetMatchingMovie(request.NewMovieName, request.NewMovieYear, targetFolder, result, options);
 
             if (movie == null)
             {
                 // We're having a new movie here
                 movie = new Movie
                 {
-                    Id = Guid.NewGuid(),
                     Name = request.NewMovieName,
                     ProductionYear = request.NewMovieYear,
                     IsInMixedFolder = !options.MovieFolder,
@@ -156,8 +155,15 @@ namespace Emby.AutoOrganize.Core
 
                 if (request.NewMovieProviderIds.Count > 0)
                 {
+                    BaseItem targetFolder = null;
+
+                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    {
+                        targetFolder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+                    }
+
                     // To avoid Series duplicate by mistake (Missing SmartMatch and wrong selection in UI)
-                    movie = CreateNewMovie(request, result, options, cancellationToken);
+                    movie = CreateNewMovie(request, targetFolder, result, options, cancellationToken);
                 }
 
                 if (movie == null)
@@ -205,7 +211,7 @@ namespace Emby.AutoOrganize.Core
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
-            var movie = GetMatchingMovie(movieName, movieYear, "", result, options);
+            var movie = GetMatchingMovie(movieName, movieYear, null, result, options);
             RemoteSearchResult searchResult = null;
 
             if (movie == null)
@@ -398,15 +404,17 @@ namespace Emby.AutoOrganize.Core
 
                 string metadataLanguage = null;
                 string metadataCountryCode = null;
+                BaseItem targetFolder = null;
 
                 if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
                 {
-                    var folder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
-                    if (folder != null)
-                    {
-                        metadataLanguage = folder.GetPreferredMetadataLanguage();
-                        metadataCountryCode = folder.GetPreferredMetadataCountryCode();
-                    }
+                    targetFolder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+                }
+
+                if (targetFolder != null)
+                {
+                    metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
+                    metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
                 }
 
                 var movieInfo = new MovieInfo
@@ -436,7 +444,7 @@ namespace Emby.AutoOrganize.Core
                         TargetFolder = options.DefaultMovieLibraryPath
                     };
 
-                    var movie = CreateNewMovie(organizationRequest, result, options, cancellationToken);
+                    var movie = CreateNewMovie(organizationRequest, targetFolder, result, options, cancellationToken);
 
                     return new Tuple<Movie, RemoteSearchResult>(movie, finalResult);
                 }
@@ -445,7 +453,7 @@ namespace Emby.AutoOrganize.Core
             return null;
         }
 
-        private Movie GetMatchingMovie(string movieName, int? movieYear, string targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
+        private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
             var parsedName = _libraryManager.ParseName(movieName.AsSpan());
 
@@ -470,14 +478,13 @@ namespace Emby.AutoOrganize.Core
                 IncludeItemTypes = new[] { typeof(Movie).Name },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
+                AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
+                SearchTerm = nameWithoutYear,
+                Years = yearInName.HasValue ? new[] { yearInName.Value } : Array.Empty<int>()
             })
                 .Cast<Movie>()
-                .Select(i => NameUtils.GetMatchScore(nameWithoutYear, yearInName, i))
-                .Where(i => i.Item2 > 0)
-                .OrderByDescending(i => i.Item2)
-                .Select(i => i.Item1)
-                // Check For the right folder AND the right extension (to handle quality upgrade)
-                .FirstOrDefault(m => m.Path.StartsWith(targetFolder) && Path.GetExtension(m.Path) == Path.GetExtension(result.OriginalPath));
+                // Check For the right extension (to handle quality upgrade)
+                .FirstOrDefault(m => Path.GetExtension(m.Path) == Path.GetExtension(result.OriginalPath));
 
             return movie;
         }
