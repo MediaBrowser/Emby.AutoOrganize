@@ -209,14 +209,25 @@ namespace Emby.AutoOrganize.Core
         {
             if (options.AutoDetectSeries)
             {
-                RemoteSearchResult finalResult = null;
+                string metadataLanguage = null;
+                string metadataCountryCode = null;
 
-                #region Search One
+                if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                {
+                    var folder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
+                    if (folder != null)
+                    {
+                        metadataLanguage = folder.GetPreferredMetadataLanguage();
+                        metadataCountryCode = folder.GetPreferredMetadataCountryCode();
+                    }
+                }
 
                 var seriesInfo = new SeriesInfo
                 {
                     Name = seriesName,
-                    Year = seriesYear
+                    Year = seriesYear,
+                    MetadataCountryCode = metadataCountryCode,
+                    MetadataLanguage = metadataLanguage
                 };
 
                 var searchResultsTask = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
@@ -225,27 +236,7 @@ namespace Emby.AutoOrganize.Core
 
                 }, cancellationToken);
 
-                #endregion
-
-                // Group series by name and year (if 2 series with the exact same name, the same year ...)
-                var groupedResult = searchResultsTask.GroupBy(p => new { p.Name, p.ProductionYear },
-                    p => p,
-                    (key, g) => new { Key = key, Result = g.ToList() }).ToList();
-
-                if (groupedResult.Count == 1)
-                {
-                    finalResult = groupedResult.First().Result.First();
-                }
-                else if (groupedResult.Count > 1)
-                {
-                    var filtredResult = groupedResult
-                        .Select(i => new { Ref = i, Score = NameUtils.GetMatchScore(seriesName, seriesYear, i.Key.Name, i.Key.ProductionYear) })
-                        .Where(i => i.Score > 0)
-                        .OrderByDescending(i => i.Score)
-                        .Select(i => i.Ref)
-                        .FirstOrDefault();
-                    finalResult = filtredResult?.Result.First();
-                }
+                var finalResult = searchResultsTask.FirstOrDefault();
 
                 if (finalResult != null)
                 {
@@ -280,18 +271,9 @@ namespace Emby.AutoOrganize.Core
                 return series;
             }
 
-            // We're having a new series here
+            var seriesFolderName = GetSeriesDirectoryName(request.NewSeriesName, request.NewSeriesYear, options);
 
-            series = new Series
-            {
-                Id = Guid.NewGuid(),
-                Name = request.NewSeriesName,
-                ProductionYear = request.NewSeriesYear
-            };
-
-            var seriesFolderName = GetSeriesDirectoryName(series, options);
-
-            var seriesName = series.Name;
+            var seriesName = request.NewSeriesName;
             var seriesPath = Path.Combine(request.TargetFolder, seriesFolderName);
 
             // Create the folder
@@ -353,7 +335,7 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private Task OrganizeEpisode(string sourcePath,
+        private async Task OrganizeEpisode(string sourcePath,
             string seriesName,
             int? seriesYear,
             int? seasonNumber,
@@ -369,7 +351,7 @@ namespace Emby.AutoOrganize.Core
 
             if (series == null)
             {
-                series = AutoDetectSeries(seriesName, null, options, cancellationToken).Result;
+                series = await AutoDetectSeries(seriesName, seriesYear, options, cancellationToken).ConfigureAwait(false);
 
                 if (series == null)
                 {
@@ -377,11 +359,11 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     _logger.Warn(msg);
-                    return Task.FromResult(true);
+                    return;
                 }
             }
 
-            return OrganizeEpisode(sourcePath,
+            await OrganizeEpisode(sourcePath,
                 series,
                 seasonNumber,
                 episodeNumber,
@@ -390,7 +372,7 @@ namespace Emby.AutoOrganize.Core
                 options,
                 rememberCorrection,
                 result,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -873,22 +855,29 @@ namespace Emby.AutoOrganize.Core
         /// <param name="series"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        private string GetSeriesDirectoryName(Series series, TvFileOrganizationOptions options)
+        private string GetSeriesDirectoryName(string seriesName, int? seriesYear, TvFileOrganizationOptions options)
         {
-            var seriesName = series.Name;
-            var serieYear = series.ProductionYear;
             var seriesFullName = seriesName;
-            if (series.ProductionYear.HasValue)
+
+            if (seriesYear.HasValue)
             {
-                seriesFullName = string.Format("{0} ({1})", seriesFullName, series.ProductionYear);
+                seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
             }
 
             var seasonFolderName = options.SeriesFolderPattern.
                 Replace("%sn", seriesName)
                 .Replace("%s.n", seriesName.Replace(" ", "."))
                 .Replace("%s_n", seriesName.Replace(" ", "_"))
-                .Replace("%sy", serieYear.ToString())
                 .Replace("%fn", seriesFullName);
+
+            if (seriesYear.HasValue)
+            {
+                seasonFolderName = seasonFolderName.Replace("%sy", seriesYear.Value.ToString());
+            }
+            else
+            {
+                seasonFolderName = seasonFolderName.Replace("%sy", string.Empty);
+            }
 
             return _fileSystem.GetValidFilename(seasonFolderName);
         }
