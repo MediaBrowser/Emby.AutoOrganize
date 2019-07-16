@@ -989,7 +989,7 @@ namespace Emby.AutoOrganize.Core
                 return false;
             }
 
-            var children = series.Children;
+            var children = series.GetChildren(new InternalItemsQuery());
             foreach (var child in children)
             {
                 if (child is Video)
