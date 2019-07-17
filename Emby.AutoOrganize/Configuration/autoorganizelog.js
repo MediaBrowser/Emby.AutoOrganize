@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'libraryMenu', 'paper-icon-button-light', 'emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, libraryMenu) {
+﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -532,7 +532,7 @@
 
         view.addEventListener('viewshow', function (e) {
 
-            libraryMenu.setTabs('autoorganize', 0, getTabs);
+            mainTabsManager.setTabs(this, 0, getTabs);
 
             reloadItems(view, true);
 

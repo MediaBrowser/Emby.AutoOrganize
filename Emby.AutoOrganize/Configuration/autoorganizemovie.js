@@ -1,4 +1,4 @@
-﻿define(['libraryMenu', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse'], function (libraryMenu) {
+﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse'], function (mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -341,7 +341,7 @@
 
         view.addEventListener('viewshow', function (e) {
 
-            libraryMenu.setTabs('autoorganize', 2, getTabs);
+            mainTabsManager.setTabs(this, 2, getTabs);
 
             ApiClient.getNamedConfiguration('autoorganize').then(function (config) {
                 loadPage(view, config);

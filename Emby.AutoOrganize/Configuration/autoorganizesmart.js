@@ -1,4 +1,4 @@
-﻿define(['loading', 'libraryMenu', 'listViewStyle'], function (loading, libraryMenu) {
+﻿define(['loading', 'mainTabsManager', 'listViewStyle'], function (loading, mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -264,7 +264,7 @@
 
         view.addEventListener('viewshow', function (e) {
 
-            libraryMenu.setTabs('autoorganize', 3, getTabs);
+            mainTabsManager.setTabs(this, 3, getTabs);
             loading.show();
 
             reloadList(view);
