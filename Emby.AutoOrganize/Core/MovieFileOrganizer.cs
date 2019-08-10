@@ -429,7 +429,7 @@ namespace Emby.AutoOrganize.Core
                 {
                     SearchInfo = movieInfo
 
-                }, cancellationToken);
+                }, targetFolder, cancellationToken);
 
                 var finalResult = searchResultsTask.FirstOrDefault();
 

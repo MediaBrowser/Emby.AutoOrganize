@@ -236,7 +236,7 @@ namespace Emby.AutoOrganize.Core
                 {
                     SearchInfo = seriesInfo
 
-                }, cancellationToken);
+                }, targetFolder, cancellationToken);
 
                 var finalResult = searchResultsTask.FirstOrDefault();
 
@@ -925,7 +925,7 @@ namespace Emby.AutoOrganize.Core
             {
                 SearchInfo = episodeInfo
 
-            }, cancellationToken).ConfigureAwait(false);
+            }, series, cancellationToken).ConfigureAwait(false);
 
             var episodeSearch = searchResults.FirstOrDefault();
 
