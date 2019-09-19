@@ -889,7 +889,9 @@ namespace Emby.AutoOrganize.Core
                 seasonFolderName = seasonFolderName.Replace("%sy", string.Empty);
             }
 
-            return _fileSystem.GetValidFilename(seasonFolderName);
+            // Don't try to create a series folder ending in a period
+            // https://emby.media/community/index.php?/topic/77680-auto-organize-shows-with-periods-qnap-and-cache
+            return _fileSystem.GetValidFilename(seasonFolderName).TrimEnd(new[] { '.', ' ' });
         }
 
         /// <summary>
