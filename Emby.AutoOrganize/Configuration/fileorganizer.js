@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle'], function (dialogHelper, loading) {
+﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
