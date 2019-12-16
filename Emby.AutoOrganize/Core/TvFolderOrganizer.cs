@@ -171,6 +171,12 @@ namespace Emby.AutoOrganize.Core
                 return _fileSystem.GetFiles(path, true)
                     .ToList();
             }
+            catch (DirectoryNotFoundException)
+            {
+                _logger.Info("Auto-Organize watch folder does not exist: {0}", path);
+
+                return new List<FileSystemMetadata>();
+            }
             catch (IOException ex)
             {
                 _logger.ErrorException("Error getting files from {0}", ex, path);

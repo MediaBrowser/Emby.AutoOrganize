@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Emby.AutoOrganize.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
@@ -10,20 +9,13 @@ using MediaBrowser.Model.Drawing;
 
 namespace Emby.AutoOrganize
 {
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasThumbImage
+    public class Plugin : BasePlugin, IHasWebPages, IHasThumbImage
     {
-        public Plugin(IApplicationPaths appPaths, IXmlSerializer xmlSerializer)
-            : base(appPaths, xmlSerializer)
-        {
-        }
-
         public override string Name => "Auto Organize";
 
 
         public override string Description
             => "Automatically organize new media";
-
-        public PluginConfiguration PluginConfiguration => Configuration;
 
         private Guid _id = new Guid("14f5f69e-4c8d-491b-8917-8e90e8317530");
         public override Guid Id
