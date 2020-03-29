@@ -279,9 +279,6 @@ namespace Emby.AutoOrganize.Core
             var seriesName = request.NewSeriesName;
             var seriesPath = Path.Combine(request.TargetFolder, seriesFolderName);
 
-            // Create the folder
-            _fileSystem.CreateDirectory(seriesPath);
-
             return new Series
             {
                 Name = seriesName,
@@ -811,8 +808,6 @@ namespace Emby.AutoOrganize.Core
             if (string.IsNullOrEmpty(season.Path))
             {
                 season.Path = GetSeasonFolderPath(series, episode.ParentIndexNumber.Value, options);
-                // Create the folder
-                _fileSystem.CreateDirectory(season.Path);
             }
 
             return season;
