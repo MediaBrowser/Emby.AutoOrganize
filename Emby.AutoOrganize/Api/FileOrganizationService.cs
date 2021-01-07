@@ -7,6 +7,7 @@ using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Services;
+using MediaBrowser.Model.Entities;
 
 namespace Emby.AutoOrganize.Api
 {
@@ -82,7 +83,7 @@ namespace Emby.AutoOrganize.Api
         public bool RememberCorrection { get; set; }
 
         [ApiMember(Name = "NewSeriesProviderIds", Description = "A list of provider IDs identifying a new series.", IsRequired = false, DataType = "Dictionary<string, string>", ParameterType = "query", Verb = "POST")]
-        public Dictionary<string, string> NewSeriesProviderIds { get; set; }
+        public ProviderIdDictionary NewSeriesProviderIds { get; set; }
 
         [ApiMember(Name = "NewSeriesName", Description = "Name of a series to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string NewSeriesName { get; set; }
@@ -104,7 +105,7 @@ namespace Emby.AutoOrganize.Api
         public string MovieId { get; set; }
 
         [ApiMember(Name = "NewMovieProviderIds", Description = "A list of provider IDs identifying a new movie.", IsRequired = false, DataType = "Dictionary<string, string>", ParameterType = "query", Verb = "POST")]
-        public Dictionary<string, string> NewMovieProviderIds { get; set; }
+        public ProviderIdDictionary NewMovieProviderIds { get; set; }
 
         [ApiMember(Name = "NewMovieName", Description = "Name of a movie to add.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string NewMovieName { get; set; }
@@ -201,7 +202,7 @@ namespace Emby.AutoOrganize.Api
 
         public void Post(OrganizeEpisode request)
         {
-            var dicNewProviderIds = new Dictionary<string, string>();
+            var dicNewProviderIds = new ProviderIdDictionary();
 
             if (request.NewSeriesProviderIds != null)
             {
@@ -230,7 +231,7 @@ namespace Emby.AutoOrganize.Api
 
         public void Post(OrganizeMovie request)
         {
-            var dicNewProviderIds = new Dictionary<string, string>();
+            var dicNewProviderIds = new ProviderIdDictionary();
 
             if (request.NewMovieProviderIds != null)
             {

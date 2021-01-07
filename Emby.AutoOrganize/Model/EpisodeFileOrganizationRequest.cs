@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using MediaBrowser.Model.Entities;
 
 namespace Emby.AutoOrganize.Model
 {
@@ -21,6 +22,6 @@ namespace Emby.AutoOrganize.Model
 
         public string TargetFolder { get; set; }
 
-        public Dictionary<string, string> NewSeriesProviderIds { get; set; }
+        public ProviderIdDictionary NewSeriesProviderIds { get; set; }
     }
 }
