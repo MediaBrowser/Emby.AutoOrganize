@@ -193,7 +193,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
-                _logger.ErrorException("Error organizing file", ex);
+                _logger.ErrorException("Error organizing file {0}", ex, path);
             }
 
             _organizationService.SaveResult(result, CancellationToken.None);
@@ -337,6 +337,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
+                _logger.ErrorException("Error organizing file {0}", ex, result.OriginalPath);
             }
 
             return result;
@@ -475,8 +476,8 @@ namespace Emby.AutoOrganize.Core
                 {
                     if (options.CopyOriginalFile && fileExists && IsSameEpisode(sourcePath, newPath))
                     {
-                        var msg = string.Format("File '{0}' already copied to new path '{1}', stopping organization", sourcePath, newPath);
-                        _logger.Info(msg);
+                        var msg = string.Format("File '{0}' already copied to new path '{1}'", sourcePath, newPath);
+                        _logger.Info(msg + " Stopping organization");
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         return;
@@ -484,8 +485,8 @@ namespace Emby.AutoOrganize.Core
 
                     if (fileExists)
                     {
-                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
-                        _logger.Info(msg);
+                        var msg = string.Format("File '{0}' already exists as '{1}'.", sourcePath, newPath);
+                        _logger.Info(msg + " Stopping organization");
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         result.TargetPath = newPath;
@@ -494,8 +495,8 @@ namespace Emby.AutoOrganize.Core
 
                     if (otherDuplicatePaths.Count > 0)
                     {
-                        var msg = string.Format("File '{0}' already exists as these:'{1}'. Stopping organization", sourcePath, string.Join("', '", otherDuplicatePaths));
-                        _logger.Info(msg);
+                        var msg = string.Format("File '{0}' already exists as these:'{1}'.", sourcePath, string.Join("', '", otherDuplicatePaths));
+                        _logger.Info(msg + " Stopping organization");
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         result.DuplicatePaths = otherDuplicatePaths;
@@ -733,7 +734,7 @@ namespace Emby.AutoOrganize.Core
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorException("Error deleting {0}", ex, result.OriginalPath);
+                    _logger.ErrorException("Error deleting file {0}", ex, result.OriginalPath);
                 }
             }
         }

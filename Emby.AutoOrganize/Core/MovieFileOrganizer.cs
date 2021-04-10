@@ -107,7 +107,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
-                _logger.ErrorException("Error organizing file", ex);
+                _logger.ErrorException("Error organizing file {0}", ex, path);
             }
 
             _organizationService.SaveResult(result, CancellationToken.None);
@@ -197,6 +197,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
+                _logger.ErrorException("Error organizing file {0}", ex, result.OriginalPath);
             }
 
             return result;
@@ -378,7 +379,7 @@ namespace Emby.AutoOrganize.Core
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorException("Error deleting {0}", ex, result.OriginalPath);
+                    _logger.ErrorException("Error deleting file {0}", ex, result.OriginalPath);
                 }
             }
         }
