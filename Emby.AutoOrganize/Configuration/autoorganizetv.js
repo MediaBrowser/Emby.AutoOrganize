@@ -313,7 +313,7 @@
             ApiClient.getVirtualFolders().then(function (result) {
 
                 var mediasLocations = [];
-
+                result = result.Items || result;
                 for (var n = 0; n < result.length; n++) {
 
                     var virtualFolder = result[n];
