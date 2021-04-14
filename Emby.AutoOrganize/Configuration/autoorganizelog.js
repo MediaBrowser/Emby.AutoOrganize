@@ -193,11 +193,16 @@
             return;
         }
 
+        for (var i = 0; i < item.DuplicatePaths.length; i++) { //remove the target filename from the list (as we will overwrite it and better for display)
+            if (item.DuplicatePaths[i].replace(/^.*[\\\/]/, '') === item.TargetPath.replace(/^.*[\\\/]/, '')) {
+                item.DuplicatePaths.splice(i, 1);
+                i--;
+            }
+        }
+
         var message = 'The following file will be moved from:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'To:' + '<br/><br/>' + item.TargetPath;
-
-        if (item.DuplicatePaths.length) {
+        if (item.DuplicatePaths.length > 0) {
             message += '<br/><br/>' + 'The following duplicates will be deleted:';
-
             message += '<br/><br/>' + item.DuplicatePaths.join('<br/>');
         }
 

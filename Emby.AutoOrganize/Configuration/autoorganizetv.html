@@ -189,11 +189,20 @@
                     </select>
                     <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
                 </div>
-                <div>
-                    <label class="checkboxContainer">
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
                         <input type="checkbox" is="emby-checkbox" id="chkOverwriteExistingEpisodes" />
                         <span>Overwrite existing episodes</span>
                     </label>
+                    <div class="fieldDescription checkboxFieldDescription">This option allows you to overwrite files matching the destination name</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input type="checkbox" is="emby-checkbox" id="chkSingleEpisodeVersion" />
+                        <span>Only keep single format of episode</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">Enabled  - Sorting will enforce a single copy of an episode, removing any copies regardless of the file pattern set.</div>
+                    <div class="fieldDescription checkboxFieldDescription">Disabled - Sorting will allow multiple copies of an episode, as long as the file pattern does not match.</div>
                 </div>
                 <div class="inputContainer">
                     <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />

@@ -17,6 +17,8 @@ namespace Emby.AutoOrganize.Model
 
         public bool OverwriteExistingEpisodes { get; set; }
 
+        public bool SingleEpisodeVersion { get; set; }
+
         public bool DeleteEmptyFolders { get; set; }
 
         public bool ExtendedClean { get; set; }
@@ -44,6 +46,8 @@ namespace Emby.AutoOrganize.Model
             SeriesFolderPattern = "%fn";
 
             CopyOriginalFile = false;
+
+            SingleEpisodeVersion = false;
 
             ExtendedClean = false;
         }
