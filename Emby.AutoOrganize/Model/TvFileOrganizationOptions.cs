@@ -15,6 +15,8 @@ namespace Emby.AutoOrganize.Model
         public string EpisodeNamePattern { get; set; }
         public string MultiEpisodeNamePattern { get; set; }
 
+        public bool AllowTBA { get; set; }
+
         public bool OverwriteExistingEpisodes { get; set; }
 
         public bool SingleEpisodeVersion { get; set; }
@@ -47,6 +49,7 @@ namespace Emby.AutoOrganize.Model
 
             CopyOriginalFile = false;
 
+            AllowTBA = true;
             SingleEpisodeVersion = false;
 
             ExtendedClean = false;

@@ -1019,6 +1019,10 @@ namespace Emby.AutoOrganize.Core
 
             var episodeTitle = _fileSystem.GetValidFilename(episode.Name).Trim();
 
+            if(options.AllowTBA == false && episodeTitle == "TBA")
+            {
+                throw new OrganizationException("Returned metadata title is 'TBA'. Current settings prevent this file from being moved.");
+            }
             if (!episode.IndexNumber.HasValue || !season.IndexNumber.HasValue)
             {
                 throw new OrganizationException("GetEpisodeFileName: Mandatory param as missing!");

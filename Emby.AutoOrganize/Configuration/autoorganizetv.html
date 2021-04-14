@@ -180,8 +180,14 @@
                         </table>
                     </div>
                 </div>
-
-                <br /><br />
+                <br />
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input type="checkbox" is="emby-checkbox" id="chkAllowTBA" />
+                        <span>Allow episodes titled 'TBA'</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">'TBA' is often set before the true name of an episode is known. Disabling this will prevent episodes being moved until a valid name is provided.</div>
+                </div>
                 <div class="selectContainer">
                     <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
                         <option value="true">Copy</option>
