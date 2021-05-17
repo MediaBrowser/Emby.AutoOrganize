@@ -882,7 +882,22 @@ namespace Emby.AutoOrganize.Core
 
             if (seriesYear.HasValue)
             {
-                seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
+                var parsedName = _libraryManager.ParseName(seriesName.AsSpan());
+
+                var yearInName = parsedName.Year;
+                var nameWithoutYear = parsedName.Name;
+
+                if (string.IsNullOrWhiteSpace(nameWithoutYear))
+                {
+                    nameWithoutYear = seriesName;
+                }
+
+                if (!yearInName.HasValue)
+                {
+                    yearInName = seriesYear;
+                }
+                
+                seriesFullName = string.Format("{0} ({1})", nameWithoutYear, seriesYear);
             }
 
             var seasonFolderName = options.SeriesFolderPattern.
