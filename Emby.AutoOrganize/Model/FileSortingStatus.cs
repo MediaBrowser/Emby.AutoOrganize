@@ -4,6 +4,8 @@
     {
         Success,
         Failure,
-        SkippedExisting
+        SkippedExisting,
+        Processing,
+        Waiting
     }
 }

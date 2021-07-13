@@ -16,6 +16,7 @@ namespace Emby.AutoOrganize.Model
         public int? EndingEpisodeNumber { get; set; }
 
         public bool RememberCorrection { get; set; }
+
         public string NewSeriesName { get; set; }
 
         public int? NewSeriesYear { get; set; }
@@ -23,5 +24,7 @@ namespace Emby.AutoOrganize.Model
         public string TargetFolder { get; set; }
 
         public ProviderIdDictionary NewSeriesProviderIds { get; set; }
+
+        public bool? RequestToOverwriteExistsingFile {get; set;}
     }
 }

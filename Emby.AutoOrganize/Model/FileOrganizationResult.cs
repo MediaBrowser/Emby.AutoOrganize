@@ -35,6 +35,12 @@ namespace Emby.AutoOrganize.Model
         /// <value>The extracted year.</value>
         public int? ExtractedYear { get; set; }
 
+         /// <summary>
+        /// Gets or sets the extracted Resolution.
+        /// </summary>
+        /// <value>The extracted Resolution.</value>
+        public string ExtractedResolution { get; set; }
+
         /// <summary>
         /// Gets or sets the extracted season number.
         /// </summary>
@@ -75,7 +81,7 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the status.
         /// </summary>
         /// <value>The status.</value>
-        public FileSortingStatus Status { get; set; }
+        public FileSortingStatus Status { get; set; } = FileSortingStatus.Waiting;
 
         /// <summary>
         /// Gets or sets the type.
@@ -100,7 +106,7 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <remarks>Runtime property not persisted to the store.</remarks>
         public bool IsInProgress { get; set; }
-
+              
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();
