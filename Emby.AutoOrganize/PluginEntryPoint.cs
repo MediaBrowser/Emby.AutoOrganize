@@ -59,16 +59,18 @@ namespace Emby.AutoOrganize
             }
 
             Current = this;
-            FileOrganizationService = new FileOrganizationService(_taskManager, Repository, _logger, _libraryMonitor, _libraryManager, _config, _fileSystem, _providerManager);
+            FileOrganizationService = new InternalFileOrganizationService(_taskManager, Repository, _logger, _libraryMonitor, _libraryManager, _config, _fileSystem, _providerManager);
 
             FileOrganizationService.ItemAdded += _organizationService_ItemAdded;
             FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset += _organizationService_LogReset;
-
+           
             // Convert Config
             _config.Convert(FileOrganizationService);
         }
+
+       
 
         private IFileOrganizationRepository GetRepository()
         {
@@ -105,7 +107,7 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemRemoved -= _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated -= _organizationService_ItemUpdated;
             FileOrganizationService.LogReset -= _organizationService_LogReset;
-
+            
             var repo = Repository as IDisposable;
             if (repo != null)
             {
