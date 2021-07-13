@@ -20,6 +20,7 @@ using Emby.Naming.Common;
 using Emby.Naming.TV;
 using MediaBrowser.Model.Providers;
 using EpisodeInfo = MediaBrowser.Controller.Providers.EpisodeInfo;
+using MediaBrowser.Controller.Session;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -32,7 +33,6 @@ namespace Emby.AutoOrganize.Core
         private readonly IFileOrganizationService _organizationService;
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
-
         private readonly CultureInfo _usCulture = new CultureInfo("en-US");
 
         public EpisodeFileOrganizer(IFileOrganizationService organizationService, IServerConfigurationManager config, IFileSystem fileSystem, ILogger logger, ILibraryManager libraryManager, ILibraryMonitor libraryMonitor, IProviderManager providerManager)
@@ -62,6 +62,7 @@ namespace Emby.AutoOrganize.Core
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Episode;
 
         public async Task<FileOrganizationResult> OrganizeEpisodeFile(
+            bool? requestToOverwriteExistsingFile,
             string path,
             TvFileOrganizationOptions options,
             CancellationToken cancellationToken)
@@ -81,11 +82,13 @@ namespace Emby.AutoOrganize.Core
             {
                 if (_libraryMonitor.IsPathLocked(path.AsSpan()))
                 {
-                    result.Status = FileSortingStatus.Failure;
+                    result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
                     _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
                     return result;
                 }
+
+                result.Status = FileSortingStatus.Processing;
 
                 var namingOptions = GetNamingOptionsInternal();
                 var resolver = new EpisodeResolver(namingOptions);
@@ -140,11 +143,13 @@ namespace Emby.AutoOrganize.Core
                         // if an earlier result exist with an different type, we update it
                         result.Type = CurrentFileOrganizerType;
 
-                        var endingEpisodeNumber = episodeInfo.EndingEpsiodeNumber;
+                        var endingEpisodeNumber = episodeInfo.EndingEpisodeNumber;
 
                         result.ExtractedEndingEpisodeNumber = endingEpisodeNumber;
 
-                        await OrganizeEpisode(path,
+                        await OrganizeEpisode(
+                            requestToOverwriteExistsingFile, 
+                            path,
                             seriesName,
                             seriesYear,
                             seasonNumber,
@@ -320,7 +325,7 @@ namespace Emby.AutoOrganize.Core
                 // We manually set the media as Series 
                 result.Type = CurrentFileOrganizerType;
 
-                await OrganizeEpisode(result.OriginalPath,
+                await OrganizeEpisode(request.RequestToOverwriteExistsingFile, result.OriginalPath,
                    series,
                    request.SeasonNumber,
                    request.EpisodeNumber,
@@ -342,7 +347,8 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private async Task OrganizeEpisode(string sourcePath,
+        private async Task OrganizeEpisode(bool? requestOverwriteExistsingFile, 
+            string sourcePath,
             string seriesName,
             int? seriesYear,
             int? seasonNumber,
@@ -370,7 +376,8 @@ namespace Emby.AutoOrganize.Core
                 }
             }
 
-            await OrganizeEpisode(sourcePath,
+            await OrganizeEpisode(requestOverwriteExistsingFile, 
+                sourcePath,
                 series,
                 seasonNumber,
                 episodeNumber,
@@ -397,7 +404,9 @@ namespace Emby.AutoOrganize.Core
         /// <param name="result"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task OrganizeEpisode(string sourcePath,
+        private async Task OrganizeEpisode(
+            bool? requestOverwriteExistsingFile,
+            string sourcePath,
             Series series,
             int? seasonNumber,
             int? episodeNumber,
@@ -421,7 +430,9 @@ namespace Emby.AutoOrganize.Core
                 SetEpisodeFileName(sourcePath, series.Name, season, episode, options);
             }
 
-            OrganizeEpisode(sourcePath,
+            OrganizeEpisode(
+               requestOverwriteExistsingFile, 
+               sourcePath,
                series,
                episode,
                options,
@@ -430,7 +441,9 @@ namespace Emby.AutoOrganize.Core
                cancellationToken);
         }
 
-        private void OrganizeEpisode(string sourcePath,
+        private void OrganizeEpisode(
+            bool? requestOverwriteExistsingFile, 
+            string sourcePath,
             Series series,
             Episode episode,
             TvFileOrganizationOptions options,
@@ -438,8 +451,11 @@ namespace Emby.AutoOrganize.Core
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
+            _logger.Info("Beginning Episode Organization");
             _logger.Info("Sorting file {0} into series {1}", sourcePath, series.Path);
 
+            result.Status = FileSortingStatus.Processing;
+           
             var originalExtractedSeriesString = result.ExtractedName;
 
             bool isNew = string.IsNullOrWhiteSpace(result.Id);
@@ -467,12 +483,23 @@ namespace Emby.AutoOrganize.Core
 
                 _logger.Info("Sorting file {0} to new path {1}", sourcePath, newPath);
                 result.TargetPath = newPath;
-
+               
                 var fileExists = _fileSystem.FileExists(result.TargetPath);
                 var otherDuplicatePaths = GetOtherDuplicatePaths(result.TargetPath, series, episode);
 
                 if (!options.OverwriteExistingEpisodes)
                 {
+                    _logger.Info("Plugin options: no overwrite episode");
+                    if (requestOverwriteExistsingFile != null)
+                    {                         
+                        if (requestOverwriteExistsingFile == true)
+                        {
+                            _logger.Info("request to overwrite episode: " + requestOverwriteExistsingFile);
+                            PerformFileSorting(options, result);
+                            return;
+                        }
+                    }
+
                     if (options.CopyOriginalFile && fileExists && IsSameEpisode(sourcePath, newPath))
                     {
                         var msg = string.Format("File '{0}' already copied to new path '{1}', stopping organization", sourcePath, newPath);
@@ -482,6 +509,7 @@ namespace Emby.AutoOrganize.Core
                         return;
                     }
 
+                   
                     if (fileExists)
                     {
                         var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
@@ -494,14 +522,18 @@ namespace Emby.AutoOrganize.Core
 
                     if (otherDuplicatePaths.Count > 0)
                     {
+                        _logger.Info("Existing Error thrown here!");
                         var msg = string.Format("File '{0}' already exists as these:'{1}'. Stopping organization", sourcePath, string.Join("', '", otherDuplicatePaths));
                         _logger.Info(msg);
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         result.DuplicatePaths = otherDuplicatePaths;
                         return;
-                    }
+                    }                    
+                    
                 }
+
+                
 
                 PerformFileSorting(options, result);
 
@@ -540,6 +572,7 @@ namespace Emby.AutoOrganize.Core
             }
             catch (Exception ex)
             {
+                _logger.Warn("Exception Thrown in OrganizeEpisode Class");
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
                 _logger.Warn(ex.Message);
@@ -684,7 +717,9 @@ namespace Emby.AutoOrganize.Core
 
         private void PerformFileSorting(TvFileOrganizationOptions options, FileOrganizationResult result)
         {
+            _logger.Info("Perform Sorting");
             // We should probably handle this earlier so that we never even make it this far
+            //Its the same file trying to copy over itself. Here is fine.
             if (string.Equals(result.OriginalPath, result.TargetPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
@@ -692,7 +727,9 @@ namespace Emby.AutoOrganize.Core
 
             _libraryMonitor.ReportFileSystemChangeBeginning(result.TargetPath);
 
-            _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+            try {
+                _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(result.TargetPath));
+            } catch {} //It is possible we are overwriting a file, and therefore can not create this directory.
 
             var targetAlreadyExists = _fileSystem.FileExists(result.TargetPath);
 
@@ -700,20 +737,33 @@ namespace Emby.AutoOrganize.Core
             {
                 if (targetAlreadyExists || options.CopyOriginalFile)
                 {
+                    _logger.Info("Copying File");
                     _fileSystem.CopyFile(result.OriginalPath, result.TargetPath, true);
                 }
                 else
                 {
+                    _logger.Info("Moving File");
                     _fileSystem.MoveFile(result.OriginalPath, result.TargetPath);
                 }
 
                 result.Status = FileSortingStatus.Success;
                 result.StatusMessage = string.Empty;
             }
+            catch (IOException ex)
+            {
+                if(ex.Message.Contains("being used by another process"))
+                {                    
+                    var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
+                    result.Status = FileSortingStatus.Waiting; //We're waiting for the file to become available.
+                    result.StatusMessage = errorMsg;
+                    _logger.ErrorException(errorMsg, ex);
+                    return;
+                }
+            }
             catch (Exception ex)
             {
+                _logger.Warn("We have encoutered an error during Processing. Most likely copying the file!");
                 var errorMsg = string.Format("Failed to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
-
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = errorMsg;
                 _logger.ErrorException(errorMsg, ex);

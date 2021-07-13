@@ -53,6 +53,7 @@ namespace Emby.AutoOrganize.Core
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
+                ExtractedResolution = GetResolution(Path.GetFileName(path)),
                 Type = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
@@ -61,7 +62,7 @@ namespace Emby.AutoOrganize.Core
             {
                 if (_libraryMonitor.IsPathLocked(path.AsSpan()))
                 {
-                    result.Status = FileSortingStatus.Failure;
+                    result.Status = FileSortingStatus.Processing;
                     result.StatusMessage = "Path is locked by other processes. Please try again later.";
                     _logger.Info("Auto-organize Path is locked by other processes. Please try again later.");
                     return result;
@@ -80,6 +81,7 @@ namespace Emby.AutoOrganize.Core
                     await OrganizeMovie(path,
                         movieName,
                         movieYear,
+                        GetResolution(path),
                         options,
                         result,
                         cancellationToken).ConfigureAwait(false);
@@ -207,6 +209,7 @@ namespace Emby.AutoOrganize.Core
         private async Task OrganizeMovie(string sourcePath,
             string movieName,
             int? movieYear,
+            string resolution,
             MovieFileOrganizationOptions options,
             FileOrganizationResult result,
             CancellationToken cancellationToken)
@@ -355,6 +358,18 @@ namespace Emby.AutoOrganize.Core
                 result.Status = FileSortingStatus.Success;
                 result.StatusMessage = string.Empty;
             }
+            catch (IOException ex)
+            {
+                if(ex.Message.Contains("being used by another process"))
+                {                    
+                    var errorMsg = string.Format("Waiting to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
+                    result.Status = FileSortingStatus.Waiting;
+                    result.StatusMessage = errorMsg;
+                    _logger.ErrorException(errorMsg, ex);
+                    
+                    return;
+                }
+            }
             catch (Exception ex)
             {
                 var errorMsg = string.Format("Failed to move file from {0} to {1}: {2}", result.OriginalPath, result.TargetPath, ex.Message);
@@ -453,6 +468,15 @@ namespace Emby.AutoOrganize.Core
             return null;
         }
 
+
+        private string GetResolution(string movieName)
+        {
+            return 
+                movieName.Contains("480p") ? "480p" :
+                movieName.Contains("720p") ? "720p" : 
+                movieName.Contains("1080p") ? "1080p" :                
+                movieName.Contains("2160p") ? "2160p" : "";
+        }
         private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
             var parsedName = _libraryManager.ParseName(movieName.AsSpan());
@@ -472,7 +496,7 @@ namespace Emby.AutoOrganize.Core
 
             result.ExtractedName = nameWithoutYear;
             result.ExtractedYear = yearInName;
-
+            result.ExtractedResolution = GetResolution(movieName);
             var movie = _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { typeof(Movie).Name },
@@ -544,6 +568,7 @@ namespace Emby.AutoOrganize.Core
                 .Replace("%m.n", movieName.Replace(" ", "."))
                 .Replace("%m_n", movieName.Replace(" ", "_"))
                 .Replace("%my", productionYear.ToString())
+                .Replace("%res", GetResolution(sourcePath))
                 .Replace("%ext", sourceExtension)
                 .Replace("%fn", Path.GetFileNameWithoutExtension(sourcePath));
 

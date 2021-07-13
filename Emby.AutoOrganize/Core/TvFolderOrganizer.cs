@@ -97,7 +97,10 @@ namespace Emby.AutoOrganize.Core
 
                     try
                     {
-                        var result = await organizer.OrganizeEpisodeFile(file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        
+                        //bool? requestToOverwriteExistingFile is null here.
+                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here.
+                        var result = await organizer.OrganizeEpisodeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {
