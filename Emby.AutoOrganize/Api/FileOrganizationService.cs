@@ -59,6 +59,10 @@ namespace Emby.AutoOrganize.Api
         /// <value>The id.</value>
         [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "POST")]
         public string Id { get; set; }
+
+        //TODO check if this needs to be required
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/{Id}/Episode/Organize", "POST", Summary = "Performs organization of a tv episode")]
@@ -93,6 +97,9 @@ namespace Emby.AutoOrganize.Api
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
+
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/{Id}/Movie/Organize", "POST", Summary = "Performs organization of a movie")]
@@ -193,7 +200,7 @@ namespace Emby.AutoOrganize.Api
         public void Post(PerformOrganization request)
         {
             // Don't await this
-            var task = InternalFileOrganizationService.PerformOrganization(request.Id);
+            var task = InternalFileOrganizationService.PerformOrganization(request.Id, request.RequestToOverwriteExistsingFile);
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
             // Wait 2s for exceptions that may occur to have them forwarded to the client for immediate error display
@@ -221,7 +228,8 @@ namespace Emby.AutoOrganize.Api
                 NewSeriesName = request.NewSeriesName,
                 NewSeriesYear = request.NewSeriesYear,
                 NewSeriesProviderIds = dicNewProviderIds,
-                TargetFolder = request.TargetFolder
+                TargetFolder = request.TargetFolder,
+                RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
             });
 
             // Async processing (close dialog early instead of waiting until the file has been copied)
