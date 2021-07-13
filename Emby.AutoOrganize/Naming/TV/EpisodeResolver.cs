@@ -22,7 +22,7 @@ namespace Emby.Naming.TV
             return new EpisodeInfo
             {
                 Path = path,
-                EndingEpsiodeNumber = parsingResult.EndingEpsiodeNumber,
+                EndingEpisodeNumber = parsingResult.EndingEpsiodeNumber,
                 EpisodeNumber = parsingResult.EpisodeNumber,
                 SeasonNumber = parsingResult.SeasonNumber,
                 SeriesName = parsingResult.SeriesName,
