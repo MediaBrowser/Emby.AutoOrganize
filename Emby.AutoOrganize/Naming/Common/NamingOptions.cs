@@ -25,6 +25,8 @@ namespace Emby.Naming.Common
 
         public char[] VideoFlagDelimiters { get; set; }
 
+        public string[] VideoResolutionFlags { get; set; }
+
         public string[] VideoFileStackingExpressions { get; set; }
         public string[] CleanDateTimes { get; set; }
         public string[] CleanStrings { get; set; }
@@ -88,6 +90,15 @@ namespace Emby.Naming.Common
                 '_',
                 '[',
                 ']'
+            };
+
+            VideoResolutionFlags = new[]
+            {
+                "480p",
+                "720p",
+                "1080p",
+                "2160p", 
+                "4K"
             };
 
             StubFileExtensions = new[]
