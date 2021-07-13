@@ -101,7 +101,8 @@
             .replace('%m.n', movieName.replace(' ', '.'))
             .replace('%m_n', movieName.replace(' ', '_'))
             .replace('%my', movieYear)
-            .replace('%ext', 'mkv')
+            .replace('%ext', 'mkv')             
+            .replace('%res', '1080p')
             .replace('%fn', fileNameWithoutExt);
 
         return result;

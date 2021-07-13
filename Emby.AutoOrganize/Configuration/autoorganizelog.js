@@ -38,13 +38,15 @@
         });
     };
 
-    ApiClient.performOrganization = function (id) {
+    ApiClient.performOrganization = function (id, options) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
 
         return this.ajax({
             type: "POST",
-            url: url
+            url: url,
+            data: JSON.stringify(options),
+            contentType: 'application/json'
         });
     };
 
@@ -208,14 +210,16 @@
             confirm(message, 'Organize File').then(function () {
 
                 loading.show();
-
-                ApiClient.performOrganization(id).then(function () {
+                var options = {
+                    RequestToOverwriteExistsingFile: true
+                }
+                ApiClient.performOrganization(id, options).then(function () {
 
                     loading.hide();
 
                     reloadItems(page, true);
 
-                }, Dashboard.processErrorResponse);
+                }, reloadItems(page, false));
             });
         });
     }
@@ -232,7 +236,7 @@
             renderResults(page, result);
 
             loading.hide();
-        }, Dashboard.processErrorResponse);
+        });
     }
 
     function getStatusText(item, enhance) {
@@ -246,13 +250,20 @@
         }
         else if (status === 'Failure') {
             color = '#cc0000';
-            status = 'Failed';
+            status = 'Attention';
         }
         if (status === 'Success') {
             color = 'green';
             status = 'Success';
         }
-
+        if (status === "Processing") {
+            color = 'green';
+            status = "Processing"
+        }
+        if (status === "Waiting") {
+            color = 'blue';
+            status = "Waiting"
+        }
         if (enhance) {
 
             if (item.StatusMessage) {
@@ -310,7 +321,7 @@
 
                 html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
 
-                html += renderItemRow(item);
+                html += renderItemRow(item, page);
 
                 html += '</tr>';
 
@@ -382,54 +393,123 @@
         }
     }
 
-    function renderItemRow(item) {
+    function getButtonSvgIconRenderData(btn_icon) {
+        switch (btn_icon) {
+            case 'IdentifyBtn': return { path: "M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19H5V5H12V3H5M17.78,4C17.61,4 17.43,4.07 17.3,4.2L16.08,5.41L18.58,7.91L19.8,6.7C20.06,6.44 20.06,6 19.8,5.75L18.25,4.2C18.12,4.07 17.95,4 17.78,4M15.37,6.12L8,13.5V16H10.5L17.87,8.62L15.37,6.12Z", color: 'black' }
+            case 'DeleteBtn': return { path: "M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z", color: 'black' };
+            case 'ProcessBtn': return { path: "M14 2H6C4.9 2 4 2.9 4 4V20C4 20.41 4.12 20.8 4.34 21.12C4.41 21.23 4.5 21.33 4.59 21.41C4.95 21.78 5.45 22 6 22H13.53C13 21.42 12.61 20.75 12.35 20H6V4H13V9H18V12C18.7 12 19.37 12.12 20 12.34V8L14 2M18 23L23 18.5L20 15.8L18 14V17H14V20H18V23Z", color: 'black' }
+        }
+    }
+    function getStatusRenderData(status) {
+        switch (status) {
+            case 'Success': return {
+                path: "M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+                color: "green",
+                text: "Complete"
+            };                                    
+            case 'Failure': return {
+                path: "M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z",
+                color: "orangered",
+                text: "Attention - Unidentified"
+            };
+            case 'SkippedExisting': return {
+                path: "M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z",
+                color: "goldenrod",
+                text: "Attention - Existing Item"
+            };
+            case 'Processing': return {
+                path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
+                color: "var(--theme-accent-text-color)",
+                text: "Processing..."
+            };             
+            case "Waiting": return {
+                path: "M12 20C16.4 20 20 16.4 20 12S16.4 4 12 4 4 7.6 4 12 7.6 20 12 20M12 2C17.5 2 22 6.5 22 12S17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2M15.3 16.2L14 17L11 11.8V7H12.5V11.4L15.3 16.2Z",
+                color: "goldenrod",
+                text: "Waiting...File currently in use"
+            };
+        }
+    }
+
+    function renderItemRow(item, page) {
 
         var html = '';
-
-        html += '<td class="detailTableBodyCell">';
-        var hide = item.IsInProgress ? '' : ' hide';
-        html += '<img src="css/images/throbber.gif" alt="" class="syncSpinner' + hide + '" style="vertical-align: middle;" />';
+        var statusRenderData = item.IsInProgress && item.Status !== "Processing" ? getStatusRenderData("Waiting") : getStatusRenderData(item.Status);
+        
+        //Progress Icon
+        html += '<td class="detailTableBodyCell">';           
+        html += '<div class="progressIcon">';
+        html += '<svg id="statusIcon" style="width:24px;height:24px" viewBox="0 0 24 24">';
+        html += '<path fill="' + statusRenderData.color + '" d="' + statusRenderData.path + '"/>';
+        html += '</svg>';
+        html += '</div>';
         html += '</td>';
+                      
 
+        //Date
         html += '<td class="detailTableBodyCell" data-title="Date">';
         var date = datetime.parseISO8601Date(item.Date, true);
         html += datetime.toLocaleDateString(date);
         html += '</td>';
 
-        html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
-        var status = item.Status;
 
-        if (item.IsInProgress) {
-            html += '<span style="color:darkorange;">';
-            html += item.OriginalFileName;
-            html += '</span>';
-        }
-        else if (status === 'SkippedExisting') {
-            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:blue;" href="#" class="button-link btnShowStatusMessage">';
-            html += item.OriginalFileName;
-            html += '</a>';
-        }
-        else if (status === 'Failure') {
-            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:red;" href="#" class="button-link btnShowStatusMessage">';
-            html += item.OriginalFileName;
-            html += '</a>';
-        } else {
-            html += '<span style="color:green;">';
-            html += item.OriginalFileName;
-            html += '</span>';
-        }
+        //Status
+        html += '<td data-resultid="' + item.Id + '" class= class="detailTableBodyCell fileCell">';
+        html += '<span>' + statusRenderData.text + '</span>';
         html += '</td>';
 
+        //Source
+        html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
+        html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:' + statusRenderData.color + ';" href="#" class="button-link btnShowStatusMessage">';
+        html += item.OriginalFileName;
+        html += '</a>';
+        html += '</td>';
+
+        //Destination
         html += '<td data-title="Destination" class="detailTableBodyCell fileCell">';
         html += item.TargetPath || '';
         html += '</td>';
 
+        //Row buttons
         html += '<td class="detailTableBodyCell organizerButtonCell" style="whitespace:no-wrap;">';
+        if (item.Status == "Waiting") {
+            html += '';
+        } else {
+            if (item.Status !== 'Success') {
 
-        if (item.Status !== 'Success') {
-
-            html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize"><i class="md-icon">folder</i></button>';
-            html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete"><i class="md-icon">delete</i></button>';
+                if (item.Status !== "Processing") {
+                    //Idenify Entry Button - This opens the Identify/Lookup modal for the item.
+                    //We want to show this option if the item has been skipped because we think it alrerady exists, or the item failed to find a match.
+                    //There is a chance that the Lookup was incorrect if there was a match to an existing item.
+                    //Allow the user to identify the item.
+                    if (item.Status === "SkippedExisting" || item.Status === "Failure") {
+                        var identifyBtn = getButtonSvgIconRenderData("IdentifyBtn");
+                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnIdentifyResult organizerButton autoSize" title="Identify">';
+                        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+                        html += '<path fill="' + identifyBtn.color + '" d="' + identifyBtn.path + '"/>';
+                        html += '</svg>';
+                        html += '</button>';
+                    }
+                    
+                    //Process Entry Button - This will process the item into the library based on the info in the "Destination" column of the table row.
+                    //Only show this button option if: it is not a Success, not Processing, and has not failed to find a possible result.
+                    //The "Destination" column info will be populated.
+                    if (item.Status !== "Failure") {                         
+                        var processBtn = getButtonSvgIconRenderData("ProcessBtn");
+                        html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize">';
+                        html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+                        html += '<path fill="' + processBtn.color + '" d="' + processBtn.path + '"/>';
+                        html += '</svg>';
+                        html += '</button>';
+                    }
+                }
+                //Delete Entry Button - This deletes the item from the log window and removes it from watched folder
+                var deleteBtn = getButtonSvgIconRenderData("DeleteBtn");
+                html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete">';
+                html += '<svg style="width:24px;height:24px" viewBox="0 0 24 24">';
+                html += '<path fill="' + deleteBtn.color + '" d="' + deleteBtn.path + '"/>';
+                html += '</svg>';
+                html += '</button>';
+            }
         }
 
         html += '</td>';
@@ -448,6 +528,14 @@
             showStatusMessage(id);
         }
 
+        var identifyOrganize = parentWithClass(e.target, "btnIdentifyResult");
+        if (identifyOrganize) {
+
+            id = identifyOrganize.getAttribute('data-resultid');           
+            var item = currentResult.Items.filter(function (i) { return i.Id === id; })[0];
+            showCorrectionPopup(e.view, item);
+        }
+
         var buttonOrganize = parentWithClass(e.target, 'btnProcessResult');
         if (buttonOrganize) {
 
@@ -461,6 +549,28 @@
             id = buttonDelete.getAttribute('data-resultid');
             deleteOriginalFile(e.view, id);
         }
+
+        var buttonRemoveSmartMatchResult  = parentWithClass(e.target, 'btnRemoveSmartMatchResult');
+        if (buttonRemoveSmartMatchResult) {
+
+            id = buttonRemoveSmartMatchResult.getAttribute('data-resultid');
+
+             var smartMatchEntryList =  getSmartMatchInfos();
+             var smartMatchListItemValue = "";
+            
+            smartMatchEntryList.forEach(item => {
+                if (item.Name == id) {
+                    smartMatchListItemValue == item.Value;
+                }
+            })
+
+            var entries = [
+                    {
+                        Name: id,
+                        Value: smartMatchListItemValue
+                    }];
+            deleteSmartMatchEntries(entries)
+        }
     }
 
     function onServerEvent(e, apiClient, data) {
@@ -469,13 +579,20 @@
 
             if (data && data.Key === 'AutoOrganize') {
                 reloadItems(pageGlobal, false);
-            }
+            }        
+
         } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
 
             updateItemStatus(pageGlobal, data);
+
+        } else if (e.type === 'AutoOrganize_ItemAdded' && data) {
+
+            reloadItems(pageGlobal, false);
+
         } else {
 
             reloadItems(pageGlobal, false);
+
         }
     }
 
@@ -486,7 +603,8 @@
 
         if (row) {
 
-            row.innerHTML = renderItemRow(item);
+            row.innerHTML = renderItemRow(item, page);
+
         }
     }
 
@@ -541,7 +659,7 @@
             events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.on(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.on(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-
+            events.on(serverNotifications, "ScheduledTaskStarted", onServerEvent)
             // on here
             taskButton({
                 mode: 'on',
@@ -561,6 +679,7 @@
             events.off(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
             events.off(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
             events.off(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
+            events.off(serverNotifications, "ScheduledTaskStarted", onServerEvent)
 
             // off here
             taskButton({
