@@ -13,7 +13,7 @@ using MediaBrowser.Model.Logging;
 
 namespace Emby.AutoOrganize.Core
 {
-    public class MovieFolderOrganizer
+    public class EpisodeFolderOrganizer
     {
         private readonly ILibraryMonitor _libraryMonitor;
         private readonly ILibraryManager _libraryManager;
@@ -23,7 +23,7 @@ namespace Emby.AutoOrganize.Core
         private readonly IServerConfigurationManager _config;
         private readonly IProviderManager _providerManager;
 
-        public MovieFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
+        public EpisodeFolderOrganizer(ILibraryManager libraryManager, ILogger logger, IFileSystem fileSystem, ILibraryMonitor libraryMonitor, IFileOrganizationService organizationService, IServerConfigurationManager config, IProviderManager providerManager)
         {
             _libraryManager = libraryManager;
             _logger = logger;
@@ -34,7 +34,7 @@ namespace Emby.AutoOrganize.Core
             _providerManager = providerManager;
         }
 
-        private bool EnableOrganization(FileSystemMetadata fileInfo, MovieFileOrganizationOptions options)
+        private bool EnableOrganization(FileSystemMetadata fileInfo, EpisodeFileOrganizationOptions options)
         {
             var minFileBytes = options.MinFileSizeMb * 1024 * 1024;
 
@@ -49,7 +49,6 @@ namespace Emby.AutoOrganize.Core
 
             return false;
         }
-
 
         private bool IsValidWatchLocation(string path, List<string> libraryFolderPaths)
         {
@@ -67,7 +66,8 @@ namespace Emby.AutoOrganize.Core
             return libraryFolderPaths.Any(i => string.Equals(i, path, StringComparison.Ordinal) || _fileSystem.ContainsSubPath(i.AsSpan(), path.AsSpan()));
         }
 
-        public async Task Organize(MovieFileOrganizationOptions options, CancellationToken cancellationToken, IProgress<double> progress)
+        public async Task Organize(EpisodeFileOrganizationOptions options,
+            CancellationToken cancellationToken, IProgress<double> progress)
         {
             var libraryFolderPaths = _libraryManager.GetVirtualFolders().SelectMany(i => i.Locations).ToList();
 
@@ -88,7 +88,7 @@ namespace Emby.AutoOrganize.Core
             {
                 var numComplete = 0;
 
-                var organizer = new MovieFileOrganizer(_organizationService, _config, _fileSystem, _logger, _libraryManager,
+                var organizer = new EpisodeFileOrganizer(_organizationService, _config, _fileSystem, _logger, _libraryManager,
                     _libraryMonitor, _providerManager);
 
                 foreach (var file in eligibleFiles)
@@ -97,7 +97,10 @@ namespace Emby.AutoOrganize.Core
 
                     try
                     {
-                        var result = await organizer.OrganizeMovieFile(file.FullName, options, cancellationToken).ConfigureAwait(false);
+                        
+                        //bool? requestToOverwriteExistingFile is null here.
+                        //requestToOverwriteExistingFile bool? param is from the UI, it shouldn't be used here.
+                        var result = await organizer.OrganizeEpisodeFile(null, file.FullName, options, cancellationToken).ConfigureAwait(false);
 
                         if (result.Status == FileSortingStatus.Success && !processedFolders.Contains(file.DirectoryName, StringComparer.OrdinalIgnoreCase))
                         {
@@ -124,13 +127,11 @@ namespace Emby.AutoOrganize.Core
             cancellationToken.ThrowIfCancellationRequested();
             progress.Report(99);
 
-
-            List<string> deleteExtensions = options.LeftOverFileExtensionsToDelete
+            var deleteExtensions = options.LeftOverFileExtensionsToDelete
                 .Select(i => i.Trim().TrimStart('.'))
                 .Where(i => !string.IsNullOrEmpty(i))
                 .Select(i => "." + i)
                 .ToList();
-
 
             // Normal Clean
             Clean(processedFolders, watchLocations, options.DeleteEmptyFolders, deleteExtensions);

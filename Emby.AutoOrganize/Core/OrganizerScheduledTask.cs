@@ -59,7 +59,7 @@ namespace Emby.AutoOrganize.Core
             {
                 var fileOrganizationService = PluginEntryPoint.Current.FileOrganizationService;
 
-                await new TvFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
+                await new EpisodeFolderOrganizer(_libraryManager, _logger, _fileSystem, _libraryMonitor, fileOrganizationService, _config, _providerManager)
                     .Organize(options.TvOptions, cancellationToken, progress).ConfigureAwait(false);
             }
 
