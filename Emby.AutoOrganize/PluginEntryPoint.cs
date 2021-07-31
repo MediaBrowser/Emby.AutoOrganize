@@ -65,12 +65,22 @@ namespace Emby.AutoOrganize
             FileOrganizationService.ItemRemoved += _organizationService_ItemRemoved;
             FileOrganizationService.ItemUpdated += _organizationService_ItemUpdated;
             FileOrganizationService.LogReset += _organizationService_LogReset;
-           
+            _taskManager.TaskExecuting += _taskManager_TaskExecuting;
+            _taskManager.TaskCompleted += _taskManager_TaskCompleted;
             // Convert Config
             _config.Convert(FileOrganizationService);
         }
 
-       
+        private void _taskManager_TaskCompleted(object sender, TaskCompletionEventArgs e)
+        {
+            _sessionManager.SendMessageToAdminSessions("TaskComplete",  e.Task.Name, CancellationToken.None);
+           
+        }
+
+        private void _taskManager_TaskExecuting(object sender, GenericEventArgs<IScheduledTaskWorker> e)
+        {
+            _sessionManager.SendMessageToAdminSessions("TaskData", e.Argument, CancellationToken.None);
+        }
 
         private IFileOrganizationRepository GetRepository()
         {
