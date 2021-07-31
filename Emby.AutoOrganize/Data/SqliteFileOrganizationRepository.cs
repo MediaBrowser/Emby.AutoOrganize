@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Emby.AutoOrganize.Core;
 using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Persistence;
@@ -256,6 +257,8 @@ namespace Emby.AutoOrganize.Data
             index++;
             result.Type = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
 
+           
+
             index++;
             if (!reader.IsDBNull(index))
             {
@@ -263,6 +266,8 @@ namespace Emby.AutoOrganize.Data
             }
 
             result.OriginalFileName = Path.GetFileName(result.OriginalPath);
+
+            result.ExtractedResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(result.OriginalFileName);
 
             index++;
             if (!reader.IsDBNull(index))
