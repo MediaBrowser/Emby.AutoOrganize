@@ -60,8 +60,7 @@ namespace Emby.AutoOrganize.Api
         [ApiMember(Name = "Id", Description = "Result Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "POST")]
         public string Id { get; set; }
 
-        //TODO check if this needs to be required
-        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Optional. Should overwrite the existsing File, if it exists. If empty the file will not overwrite.", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
         public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
@@ -122,6 +121,9 @@ namespace Emby.AutoOrganize.Api
 
         [ApiMember(Name = "TargetFolder", Description = "Target Folder", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "POST")]
         public string TargetFolder { get; set; }
+         
+        [ApiMember(Name = "RequestToOverwriteExistsingFile", Description = "Overwrite Existsing File", IsRequired = false, DataType = "bool", ParameterType = "query", Verb = "POST")]
+        public bool RequestToOverwriteExistsingFile { get; set; }
     }
 
     [Route("/Library/FileOrganizations/SmartMatches", "GET", Summary = "Gets smart match entries")]
@@ -254,7 +256,8 @@ namespace Emby.AutoOrganize.Api
                 NewMovieName = request.NewMovieName,
                 NewMovieYear = request.NewMovieYear,
                 NewMovieProviderIds = dicNewProviderIds,
-                TargetFolder = request.TargetFolder
+                TargetFolder = request.TargetFolder,
+                RequestToOverwriteExistsingFile = request.RequestToOverwriteExistsingFile
             });
         }
 
