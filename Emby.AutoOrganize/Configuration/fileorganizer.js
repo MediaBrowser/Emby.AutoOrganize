@@ -275,7 +275,7 @@
         
         var mediaSelect = dlg.querySelector("#selectMedias");
         var selectedOption = mediaSelect.options[mediaSelect.selectedIndex].text;
-        var message = 'The following file will be moved to:<br/>' + selectedOption + (chosenType === "Series" ? '<br/>Season ' + options.SeasonNumber + '<br/>Episode: ' + options.EpisodeNumber : '');
+        var message = 'The following file will be moved to the ' + chosenType + ':<br/>' + selectedOption + (chosenType === "Series" ? '<br/>Season ' + options.SeasonNumber + '<br/>Episode: ' + options.EpisodeNumber : '');
               
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 

@@ -1,4 +1,4 @@
-﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse'], function (mainTabsManager) {
+﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -135,7 +135,7 @@
         view.querySelector('#txtMoviePattern').value = movieOptions.MoviePattern;
         view.querySelector('#txtWatchMovieFolder').value = movieOptions.WatchLocations[0] || '';
 
-        view.querySelector('#chkSubMovieFolders').checked = movieOptions.MovieFolder;
+        view.querySelector('#chkSubMovieFolders').checked = movieOptions.CreateMovieInFolder;
         view.querySelector('#txtMovieFolderPattern').value = movieOptions.MovieFolderPattern;
 
         view.querySelector('#txtDeleteLeftOverMovieFiles').value = movieOptions.LeftOverFileExtensionsToDelete.join(';');
@@ -166,7 +166,7 @@
             movieOptions.AutoDetectMovie = view.querySelector('#chkEnableMovieAutoDetect').checked;
             movieOptions.DefaultMovieLibraryPath = view.querySelector('#selectMovieFolder').value;
 
-            movieOptions.MovieFolder = view.querySelector('#chkSubMovieFolders').checked;
+            movieOptions.CreateMovieInFolder = view.querySelector('#chkSubMovieFolders').checked;
             movieOptions.MovieFolderPattern =  view.querySelector('#txtMovieFolderPattern').value;
 
             var watchLocation = view.querySelector('#txtWatchMovieFolder').value;

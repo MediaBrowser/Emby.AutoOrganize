@@ -5,11 +5,44 @@
             <form class="libraryFileOrganizerForm">
 
                 <div>
-                    <label class="checkboxContainer">
-                        <input type="checkbox" is="emby-checkbox" id="chkEnableTvSorting" />
-                        <span>Enable auto-organize for episodes</span>
-                    </label>
+                    <h3 class="checkboxListLabel">Smart Options</h3>
+                    <div class="paperList checkboxList checkboxList-paperList" style="padding:3% !important">
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnableTvSorting" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Enable auto-organize for episode files</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Enable smart organization of new episode files</div>
+                        </div>
+
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnableSeriesAutoDetect" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Enable new series library creation</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Automatically create folders in libraries for new Series</div>
+                        </div>
+
+                        <div class="fldSelectSeriesFolder hide selectContainer">
+                            <select id="selectSeriesFolder" is="emby-select" label="Default Series library folder:"></select>
+                            <div class="fieldDescription">New series folders will be created here.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingEpisodes" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Overwrite existing episode files</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing episode files in the library folders with new versions in the watched folder.</div>
+                        </div>
+
+                    </div>
                 </div>
+                <br />
+                <hr />
+                <h3 class="checkboxListLabel">Source Folder Options</h3>
                 <div class="inputContainer">
                     <div style="display:flex; align-items:center;">
                         <div style="flex-grow:1;">
@@ -19,19 +52,30 @@
                         <button type="button" is="paper-icon-button-light" id="btnSelectWatchFolder" title="Select directory" class="autoSize"><i class="md-icon">search</i></button>
                     </div>
                 </div>
+
+                <div class="selectContainer">
+                    <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
+                        <option value="true">Copy</option>
+                        <option value="false">Move</option>
+                    </select>
+                    <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" id="txtIgnoreFileNameContains" type="text" label="Ignore file names which contain:" />
+                    <div class="fieldDescription">Comma delimeted list of words which are contained in file names to be ignored in the watched folder.</div>
+                </div>
+
                 <div class="inputContainer">
                     <input is="emby-input" id="txtMinFileSize" type="number" label="Min file size:" pattern="[0-9]*" min="0" required />
                     <div class="fieldDescription">Files smaller than this will be ignored.</div>
                 </div>
-                <div class="inputContainer">
-                    <input is="emby-input" id="txtSeasonFolderPattern" type="text" label="Season folder pattern:" required />
-                    <div class="fieldDescription seasonFolderFieldDescription"></div>
-                </div>
-                <div class="inputContainer">
-                    <input is="emby-input" id="txtSeasonZeroName" type="text" label="Season zero folder name:" required />
-                    <div class="fieldDescription"></div>
-                </div>
 
+                <hr />
+
+                <h3 class="checkboxListLabel">Destination Folder Options</h3>
+
+                <!--Series-->
                 <div is="emby-collapse" title="Series directory pattern">
                     <div class="collapseContent">
                         <br />
@@ -81,7 +125,22 @@
                         </table>
                     </div>
                 </div>
+                <!--Season-->
+                <div is="emby-collapse" title="Season directory pattern">
+                    <div class="collapseContent">
+                        <br />
+                        <div class="inputContainer">
+                            <input is="emby-input" id="txtSeasonFolderPattern" type="text" label="Season folder pattern:" required />
+                            <div class="fieldDescription seasonFolderFieldDescription"></div>
+                        </div>
 
+                        <div class="inputContainer">
+                            <input is="emby-input" id="txtSeasonZeroName" type="text" label="Season zero folder name:" required />
+                            <div class="fieldDescription"></div>
+                        </div>
+                    </div>
+                </div>
+                <!--Episodes-->
                 <div is="emby-collapse" title="Episode file pattern">
                     <div class="collapseContent">
                         <br />
@@ -181,20 +240,12 @@
                     </div>
                 </div>
 
-                <br /><br />
-                <div class="selectContainer">
-                    <select is="emby-select" id="copyOrMoveFile" label="Transfer method:">
-                        <option value="true">Copy</option>
-                        <option value="false">Move</option>
-                    </select>
-                    <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
-                </div>
-                <div>
-                    <label class="checkboxContainer">
-                        <input type="checkbox" is="emby-checkbox" id="chkOverwriteExistingEpisodes" />
-                        <span>Overwrite existing episodes</span>
-                    </label>
-                </div>
+                <br />
+                <br />
+                <hr />
+                <br />
+
+                <h3 class="checkboxListLabel">Clean up</h3>
                 <div class="inputContainer">
                     <input is="emby-input" id="txtDeleteLeftOverFiles" type="text" label="Delete left over files" />
                     <div class="fieldDescription">Each value separated by ;</div>
@@ -213,16 +264,14 @@
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">Clean empty folders from watch folders</div>
                 </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label>
-                        <input type="checkbox" is="emby-checkbox" id="chkEnableSeriesAutoDetect" />
-                        <span>Enable new series creation</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">Create new series folders when matches are not found within the library.</div>
-                </div>
-                <div class="fldSelectSeriesFolder hide selectContainer">
-                    <select id="selectSeriesFolder" is="emby-select" label="Default Series library:"></select>
-                </div>
+                <!--<div class="checkboxContainer checkboxContainer-withDescription">
+        <label>
+            <input type="checkbox" is="emby-checkbox" id="chkEnableSeriesAutoDetect" />
+            <span>Enable new series creation</span>
+        </label>
+        <div class="fieldDescription checkboxFieldDescription">Create new series folders when matches are not found within the library.</div>
+    </div>-->
+
                 <div>
                     <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
                 </div>

@@ -1,4 +1,4 @@
-﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse'], function (mainTabsManager) {
+﻿define(['mainTabsManager', 'emby-input', 'emby-select', 'emby-checkbox', 'emby-button', 'emby-collapse', 'emby-toggle'], function (mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {

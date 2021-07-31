@@ -141,13 +141,13 @@
 
             matchStringHtml += '<div class="listItem">';
 
-            matchStringHtml += '<div class="listItemBody" style="padding: .1em 1em .4em 5.5em; min-height: 1.5em;">';
+            matchStringHtml += '<div class="listItemBody">';
 
             matchStringHtml += "<div class='listItemBodyText secondary'>" + m + "</div>";
 
             matchStringHtml += '</div>';
 
-            matchStringHtml += '<button type="button" is="emby-button" class="btnDeleteMatchEntry" style="padding: 0;" data-index="' + i + '" data-matchindex="' + matchStringIndex + '" title="Delete"><i class="md-icon">delete</i></button>';
+            matchStringHtml += '<button type="button" is="emby-button" class="btnDeleteMatchEntry emby-button" style="padding: 0;" data-index="' + i + '" data-matchindex="' + matchStringIndex + '" title="Delete"><i class="md-icon">delete</i></button>';
 
             matchStringHtml += '</div>';
             matchStringIndex++;
@@ -182,26 +182,39 @@
         var html = "";
 
         if (infos.length) {
-            html += '<div class="paperList">';
+            //html += '<div class="paperList" style="padding:4%">';
+            html += '<div class="" style="padding:4%">';
         }
 
         for (var i = 0, length = infos.length; i < length; i++) {
 
             var info = infos[i];
 
-            html += '<div class="listItem">';
 
-            html += '<div class="listItemIconContainer">';
-            html += '<i class="listItemIcon md-icon">folder</i>';
-            html += '</div>';
-
-            html += '<div class="listItemBody">';
-            html += "<h2 class='listItemBodyText'>" + (info.DisplayName || info.ItemName) + "</h2>";
-            html += '</div>';
-
-            html += '</div>';
-
+            html += ' <div is="emby-collapse" title="'  + (info.DisplayName || info.ItemName) +'">';
+            html += '<div class="collapseContent">';
+            html += '<div class="paperList" style="padding:4%">';           
             html += getHtmlFromMatchStrings(info, i);
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+
+            //html += '<div class="listItem">';
+
+            //html += '<div class="listItemIconContainer">';
+            //html += '<i class="listItemIcon md-icon">folder</i>';
+            //html += '</div>';
+
+            //html += '<div class="listItemBody">';
+            //html += "<h2 class='listItemBodyText'>" + (info.DisplayName || info.ItemName) + "</h2>";
+            //html += '</div>';
+
+            //html += '</div>';
+
+
+
+            //html += getHtmlFromMatchStrings(info, i);
         }
 
         if (infos.length) {

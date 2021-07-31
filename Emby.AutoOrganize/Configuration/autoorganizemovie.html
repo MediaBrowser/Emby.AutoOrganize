@@ -5,11 +5,45 @@
             <form class="libraryFileOrganizerForm">
 
                 <div>
-                    <label class="checkboxContainer">
-                        <input type="checkbox" is="emby-checkbox" id="chkEnableMovieSorting" />
-                        <span>Enable auto-organize for movies</span>
-                    </label>
+                    <h3 class="checkboxListLabel">Smart Options</h3>
+                    <div class="paperList checkboxList checkboxList-paperList" style="padding:3% !important">
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnableMovieSorting" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Enable auto-organize for movies</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Enable movie organization in the plugin</div>
+                            <!--<div class="fieldDescription toggleFieldDescription">Enable smart organization of new movie files.<br />Automatically create movies. <br />Warning Beta feature, Use with caution, this may cause significantly longer scans and false identification</div>-->
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkEnableMovieAutoDetect" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Enable Smart Organization of New Movies</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Smart organization automatically creates movies. <br />Warning Beta feature, Use with caution, this may cause significantly longer scans and false identification</div>
+                            <!--<div class="fieldDescription toggleFieldDescription"></div>-->
+                        </div>
+                        <div class="fldSelectMovieFolder hide selectContainer">
+                            <select id="selectMovieFolder" is="emby-select" label="Default Movie library:"></select>
+                            <div class="fieldDescription">New movies will be created here.</div>
+                        </div>
+
+
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom:0;">
+                            <label style="width:auto;" class="emby-toggle-label">
+                                <input type="checkbox" is="emby-toggle" id="chkOverwriteExistingMovies" class="emby-toggle emby-toggle-focusring">
+                                <span class="toggleLabel">Overwrite existing movie files</span>
+                            </label>
+                            <div class="fieldDescription toggleFieldDescription">Automatically overwrite existing movie files in the library folders with new versions in the watched folder.</div>
+                        </div>
+
+                    </div>
                 </div>
+                <br />
+                <hr />
+                <h3 class="checkboxListLabel">Source Folder Options</h3>
+
                 <div class="inputContainer">
                     <div style="display:flex; align-items:center;">
                         <div style="flex-grow:1;">
@@ -19,21 +53,40 @@
                         <button type="button" is="paper-icon-button-light" id="btnSelectWatchMovieFolder" title="Select directory" class="autoSize"><i class="md-icon">search</i></button>
                     </div>
                 </div>
+
+                <div class="selectContainer">
+                    <select is="emby-select" id="copyOrMoveMovieFile" label="Transfer method:">
+                        <option value="true">Copy</option>
+                        <option value="false">Move</option>
+                    </select>
+                    <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
+                </div>
+
                 <div class="inputContainer">
                     <input is="emby-input" id="txtMovieMinFileSize" type="number" label="Min file size:" pattern="[0-9]*" min="0" required />
                     <div class="fieldDescription">Files smaller than this will be ignored.</div>
                 </div>
 
-                <div class="checkboxContainer">
-                    <label>
-                        <input type="checkbox" is="emby-checkbox" id="chkSubMovieFolders" />
-                        <span>Create subdirectory per Movie</span>
+                <div class="inputContainer">
+                    <input is="emby-input" id="txtIgnoreFileNameContains" type="text" label="Ignore file names which contain:" />
+                    <div class="fieldDescription">Comma delimeted list of words which are contained in file names to be ignored in the watched folder.</div>
+                </div>
+
+
+                <hr />
+                <h3 class="checkboxListLabel">Destination Folder Options</h3>
+
+                <div class="fldSubMovieFolder checkboxContainer checkboxContainer-withDescription" style="margin-bottom:2%;">
+                    <label style="width:auto;" class="emby-toggle-label">
+                        <input type="checkbox" is="emby-toggle" id="chkSubMovieFolders" class="emby-toggle emby-toggle-focusring">
+                        <span class="toggleLabel">Create subdirectory per Movie</span>
                     </label>
+                    <div class="fieldDescription toggleFieldDescription">Identified movies are placed in a folder with a movie folder pattern identified below.<br />Default: On. Adheres to Emby's basic file system naming structure. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102-movie-naming" target="_blank">Learn more</a>.</div>
                 </div>
 
                 <div is="emby-collapse" class="hide fldSelectMovieFolderPattern" title="Movie folder pattern">
                     <div class="collapseContent">
-                        <br />
+
                         <div class="inputContainer">
                             <input is="emby-input" id="txtMovieFolderPattern" type="text" label="Movie folder pattern:" required />
                             <div class="fieldDescription movieFolderPatternDescription"></div>
@@ -81,11 +134,7 @@
                                     <td>%fn</td>
                                     <td>filename</td>
                                 </tr>
-                                <tr>
-                                    <td>File Resolution</td>
-                                    <td>%res</td>
-                                    <td>1080p</td>
-                                </tr>
+
                             </tbody>
                         </table>
                     </div>
@@ -151,20 +200,13 @@
                     </div>
                 </div>
 
-                <br /><br />
-                <div class="selectContainer">
-                    <select is="emby-select" id="copyOrMoveMovieFile" label="Transfer method:">
-                        <option value="true">Copy</option>
-                        <option value="false">Move</option>
-                    </select>
-                    <div class="fieldDescription editorfieldDescription">Copy or move files from the watch folder</div>
-                </div>
-                <div>
-                    <label class="checkboxContainer">
-                        <input type="checkbox" is="emby-checkbox" id="chkOverwriteExistingMovies" />
-                        <span>Overwrite existing movies</span>
-                    </label>
-                </div>
+                <br />
+                <p class="benefits">Inorder to handle multi-version movie items, the folder and file names must adhere to emby muti-version naming requirements. <a is="emby-linkbutton" class="button-link emby-button" href="https://support.emby.media/support/solutions/articles/44001159102" target="_blank">Learn more</a>.</p>
+
+                <br />
+                <br />
+                <hr />
+                <h3 class="checkboxListLabel">Clean up</h3>
                 <div class="inputContainer">
                     <input is="emby-input" id="txtDeleteLeftOverMovieFiles" type="text" label="Delete left over files" />
                     <div class="fieldDescription">Each value separated by ;</div>
@@ -183,16 +225,18 @@
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">Extended clean of left over files and empty folders</div>
                 </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label>
-                        <input type="checkbox" is="emby-checkbox" id="chkEnableMovieAutoDetect" />
-                        <span>Enable auto-detect for movies</span>
-                    </label>
-                    <div class="fieldDescription checkboxFieldDescription">Warning Beta feature, Use with caution, this may cause significantly longer scans and false identification</div>
-                </div>
-                <div class="fldSelectMovieFolder hide selectContainer">
-                    <select id="selectMovieFolder" is="emby-select" label="Default Movie library:"></select>
-                </div>
+
+
+                <!--<div class="checkboxContainer checkboxContainer-withDescription">
+        <label>
+            <input type="checkbox" is="emby-checkbox" id="chkEnableMovieAutoDetect" />
+            <span>Enable auto-detect for movies</span>
+        </label>
+        <div class="fieldDescription checkboxFieldDescription">Warning Beta feature, Use with caution, this may cause significantly longer scans and false identification</div>
+    </div>-->
+
+
+
                 <div>
                     <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
                 </div>

@@ -1,47 +1,79 @@
 ﻿
 <div id="libraryFileOrganizerLogPage" data-role="page" class="page type-interior libraryFileOrganizerLogPage pluginConfigurationPage withTabs fullWidthContent" data-helpurl="https://github.com/MediaBrowser/Wiki/wiki/Auto-Organize" data-controller="__plugin/AutoOrganizeLogJs">
-    
+
     <div>
         <div class="content-primary">
 
             <div>
-                <div style="text-align: right;" class="organizeTaskPanel hide">
-                    <button is="emby-button" type="button" class="btnClearCompleted raised button-cancel">
-                        <i class="md-icon">clear_all</i><span>Clear Completed</span>
+
+                <div style="display:flex; justify-content:center; align-items:center" class="organizeTaskPanel hide">
+
+                    <div is="emby-button" type="button" class="btnOpenTableOptionsBtn" style="cursor:pointer">
+                        <svg style="width:24px;height:24px" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M3 3H17C18.11 3 19 3.9 19 5V12.08C17.45 11.82 15.92 12.18 14.68 13H11V17H12.08C11.97 17.68 11.97 18.35 12.08 19H3C1.9 19 1 18.11 1 17V5C1 3.9 1.9 3 3 3M3 7V11H9V7H3M11 7V11H17V7H11M3 13V17H9V13H3M22.78 19.32L21.71 18.5C21.73 18.33 21.75 18.17 21.75 18S21.74 17.67 21.71 17.5L22.77 16.68C22.86 16.6 22.89 16.47 22.83 16.36L21.83 14.63C21.77 14.5 21.64 14.5 21.5 14.5L20.28 15C20 14.82 19.74 14.65 19.43 14.53L19.24 13.21C19.23 13.09 19.12 13 19 13H17C16.88 13 16.77 13.09 16.75 13.21L16.56 14.53C16.26 14.66 15.97 14.82 15.71 15L14.47 14.5C14.36 14.5 14.23 14.5 14.16 14.63L13.16 16.36C13.1 16.47 13.12 16.6 13.22 16.68L14.28 17.5C14.26 17.67 14.25 17.83 14.25 18S14.26 18.33 14.28 18.5L13.22 19.32C13.13 19.4 13.1 19.53 13.16 19.64L14.16 21.37C14.22 21.5 14.35 21.5 14.47 21.5L15.71 21C15.97 21.18 16.25 21.35 16.56 21.47L16.75 22.79C16.77 22.91 16.87 23 17 23H19C19.12 23 19.23 22.91 19.25 22.79L19.44 21.47C19.74 21.34 20 21.18 20.28 21L21.5 21.5C21.64 21.5 21.77 21.5 21.84 21.37L22.84 19.64C22.9 19.53 22.87 19.4 22.78 19.32M18 19.5C17.17 19.5 16.5 18.83 16.5 18S17.18 16.5 18 16.5 19.5 17.17 19.5 18 18.84 19.5 18 19.5Z" />
+                        </svg>
+                    </div>
+
+                    <div style="flex-grow:1"></div>
+
+                    <button is="emby-button" type="button" class="btnOrganize raised fab" style="cursor:pointer">
+                        <svg style="width:24px;height:24px" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M21,10.12H14.22L16.96,7.3C14.23,4.6 9.81,4.5 7.08,7.2C4.35,9.91 4.35,14.28 7.08,17C9.81,19.7 14.23,19.7 16.96,17C18.32,15.65 19,14.08 19,12.1H21C21,14.08 20.12,16.65 18.36,18.39C14.85,21.87 9.15,21.87 5.64,18.39C2.14,14.92 2.11,9.28 5.62,5.81C9.13,2.34 14.76,2.34 18.27,5.81L21,3V10.12M12.5,8V12.25L16,14.33L15.28,15.54L11,13V8H12.5Z" />
+                        </svg>
                     </button>
-                    <button is="emby-button" type="button" class="btnClearLog raised button-cancel">
-                        <i class="md-icon">clear_all</i><span>${ButtonClear}</span>
-                    </button>
-                    <button is="emby-button" type="button" class="btnOrganize raised button-cancel"><i class="md-icon">check</i><span>Organize</span></button>
+
                     <progress max="100" min="0" style="width: 100px;" class="organizeProgress"></progress>
+
+                    <h3 class="last-execution-time"></h3>
+
                 </div>
+
                 <div class="listTopPaging">
                 </div>
 
                 <div class="autoorganizetable">
-                    <table class="tblOrganizationResults table detailTable" style="width:100%;">
+                    <table class="tblOrganizationResults table detailTable ui-responsive" style="width:100%;">
                         <thead>
                             <tr style="text-align: left;">
-                                <th class="detailTableHeaderCell" data-priority="1"></th>
-                                <th class="detailTableHeaderCell" data-priority="2">Date</th>
-                                <th class="detailTableHeaderCell" data-priority="1" >Status</th>
-                                <th class="detailTableHeaderCell" data-priority="1">Source</th>
-                                <th class="detailTableHeaderCell" data-priority="3">Destination</th>
-                                <th class="detailTableHeaderCell" data-priority="1"></th>
+                                <th class="detailTableHeaderCell" data-priority="1"></th> <!--Status Icon-->
+                                <th class="detailTableHeaderCell" data-priority="2">
+                                    <div class="date_sort" style="cursor:pointer;  display:flex; align-items:center">
+                                        <span>Date</span>
+                                        <svg style="width:24px;height:24px; opacity:0" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th class="detailTableHeaderCell" data-priority="3">
+                                    <div class="status_sort" style="cursor:pointer;  display:flex; align-items:center">
+                                        <span>Status</span>
+                                        <svg style="width:24px;height:24px; opacity:0" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th class="detailTableHeaderCell" data-priority="3">
+                                    <div class="name_sort" style="cursor:pointer; display:flex; align-items:center">
+                                        <span>Name</span>
+                                        <svg style="width:24px;height:24px;opacity:0" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M7,10L12,15L17,10H7Z" />
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th class="detailTableHeaderCell" data-priority="1">Production Year</th>
+                                <th class="detailTableHeaderCell" data-priority="1">Resolution</th>
+                                <th class="detailTableHeaderCell" data-priority="1">File Size</th>
+                                <th class="detailTableHeaderCell" data-priority="1"></th> <!--Type-->
+                                <th class="detailTableHeaderCell" data-priority="2">Source</th>
+                                <th class="detailTableHeaderCell" data-priority="2">Destination</th>
+                                <th class="detailTableHeaderCell" data-priority="1"></th> <!--Option buttons-->
                             </tr>
                         </thead>
                         <tbody class="resultBody"></tbody>
                     </table>
                 </div>
                 <br />
-                <!--<div style="text-align: right; vertical-align: middle;" class="legend">
-                    <div style="display: inline-block; height: 10px; width: 10px; background: green; margin-right: 1px;"></div>
-                    <span>Completed</span>
-                    <div style="display: inline-block; height: 10px; width: 10px; background: red; margin-left: 1em; margin-right: 1px;"></div>
-                    <span>Failed</span>
-                    <div style="display: inline-block; height: 10px; width: 10px; background: blue; margin-left: 1em; margin-right: 1px;"></div>
-                    <span>Skipped</span>
-                </div>-->
+
                 <div class="listBottomPaging">
                 </div>
             </div>
