@@ -106,7 +106,9 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <remarks>Runtime property not persisted to the store.</remarks>
         public bool IsInProgress { get; set; }
-              
+          
+       
+
         public FileOrganizationResult()
         {
             DuplicatePaths = new List<string>();

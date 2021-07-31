@@ -5,6 +5,7 @@
         Success,
         Failure,
         SkippedExisting,
+        NewResolution,
         Processing,
         Waiting
     }
