@@ -149,7 +149,8 @@
         ApiClient.getItems(null, {
             recursive: true,
             includeItemTypes: chosenType,
-            sortBy: 'SortName'
+            sortBy: 'SortName',
+            Fields: ['ProductionYear']
 
         }).then(function (result) {
 
@@ -157,7 +158,7 @@
 
             existingMediasHtml = result.Items.map(function (s) {
 
-                return '<option value="' + s.Id + '">' + s.Name + '</option>';
+                return '<option value="' + s.Id + '">' + s.Name + ' ( ' + s.ProductionYear + ')</option>';
 
             }).join('');
 
