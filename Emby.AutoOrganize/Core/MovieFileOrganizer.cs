@@ -78,13 +78,14 @@ namespace Emby.AutoOrganize.Core
                 if (!string.IsNullOrEmpty(movieName))
                 {
                     var movieYear = movieInfo.Year;
+                    var movieResolution = FileOrganizationHelper.GetStreamResolutionFromFileName(Path.GetFileName(path));
 
                     _logger.Debug("Extracted information from {0}. Movie {1}, Year {2}", path, movieName, movieYear);
 
                     await OrganizeMovie(path,
                         movieName,
                         movieYear,
-                        FileOrganizationHelper.GetStreamResolutionFromFileName(Path.GetFileName(path)),
+                        movieResolution,
                         options,
                         result,
                         cancellationToken).ConfigureAwait(false);
@@ -337,8 +338,10 @@ namespace Emby.AutoOrganize.Core
                     if (fileExists)
                     {
                         var msg = string.Empty;
+                        //Just incase we weren't able to extract a resolution from the title.
+                        var extractedResolution = result.ExtractedResolution ?? string.Empty; 
                         //The resolution of the current source movie, and the current library item are the same - mark as existing
-                        if (!IsNewStreamResolution(movie, result.ExtractedResolution))
+                        if (!IsNewStreamResolution(movie, extractedResolution))
                         {
                             msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath,  movie.Path);
                             _logger.Info(msg);
@@ -374,7 +377,6 @@ namespace Emby.AutoOrganize.Core
                     result.Status = FileSortingStatus.Waiting;
                     result.StatusMessage = errorMsg;
                     _logger.ErrorException(errorMsg, ex);
-                    
                     return;
                 }
             }
