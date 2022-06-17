@@ -1,4 +1,4 @@
-﻿define(['globalize', 'serverNotifications', 'events', 'scripts/taskbutton', 'datetime', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager) {
+﻿define(['globalize', 'serverNotifications', 'events', 'taskButton', 'datetime', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'emby-linkbutton', 'detailtablecss'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
