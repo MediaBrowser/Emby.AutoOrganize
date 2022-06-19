@@ -109,7 +109,7 @@ namespace Emby.AutoOrganize.Core
                     }
                     catch (Exception ex)
                     {
-                        _logger.ErrorException("Error organizing episode {0}", ex, file.FullName);
+                        _logger.ErrorException("Error organizing file {0}", ex, file.FullName);
                     }
 
                     numComplete++;

@@ -15,7 +15,11 @@ namespace Emby.AutoOrganize.Model
         public string EpisodeNamePattern { get; set; }
         public string MultiEpisodeNamePattern { get; set; }
 
+        public bool AllowTBA { get; set; }
+
         public bool OverwriteExistingEpisodes { get; set; }
+
+        public bool SingleEpisodeVersion { get; set; }
 
         public bool DeleteEmptyFolders { get; set; }
 
@@ -44,6 +48,9 @@ namespace Emby.AutoOrganize.Model
             SeriesFolderPattern = "%fn";
 
             CopyOriginalFile = false;
+
+            AllowTBA = true;
+            SingleEpisodeVersion = false;
 
             ExtendedClean = false;
         }

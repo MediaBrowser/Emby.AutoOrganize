@@ -128,7 +128,7 @@ namespace Emby.AutoOrganize.Core
             }
             catch (Exception ex)
             {
-                _logger.ErrorException("Error deleting {0}", ex, result.OriginalPath);
+                _logger.ErrorException("Error deleting file {0}", ex, result.OriginalPath);
             }
             finally
             {
@@ -177,11 +177,6 @@ namespace Emby.AutoOrganize.Core
                 default:
                     throw new OrganizationException("No organizer exist for the type " + result.Type);
             }
-
-            if (organizeResult.Status != FileSortingStatus.Success)
-            {
-                throw new OrganizationException(result.StatusMessage);
-            }
         }
 
         public void ClearLog()
@@ -203,11 +198,6 @@ namespace Emby.AutoOrganize.Core
 
             var options = GetAutoOrganizeOptions();
             var result = await organizer.OrganizeWithCorrection(request, options.TvOptions, CancellationToken.None).ConfigureAwait(false);
-
-            if (result.Status != FileSortingStatus.Success)
-            {
-                throw new Exception(result.StatusMessage);
-            }
         }
 
         public void PerformOrganization(MovieFileOrganizationRequest request)
@@ -217,11 +207,6 @@ namespace Emby.AutoOrganize.Core
 
             var options = GetAutoOrganizeOptions();
             var result = organizer.OrganizeWithCorrection(request, options.MovieOptions, CancellationToken.None);
-
-            if (result.Status != FileSortingStatus.Success)
-            {
-                throw new Exception(result.StatusMessage);
-            }
         }
 
         public QueryResult<SmartMatchResult> GetSmartMatchInfos(FileOrganizationResultQuery query)

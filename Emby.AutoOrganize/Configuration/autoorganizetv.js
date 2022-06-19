@@ -141,7 +141,9 @@
         var tvOptions = config.TvOptions;
 
         view.querySelector('#chkEnableTvSorting').checked = tvOptions.IsEnabled;
+        view.querySelector('#chkAllowTBA').checked = tvOptions.AllowTBA;
         view.querySelector('#chkOverwriteExistingEpisodes').checked = tvOptions.OverwriteExistingEpisodes;
+        view.querySelector('#chkSingleEpisodeVersion').checked = tvOptions.SingleEpisodeVersion;
         view.querySelector('#chkDeleteEmptyFolders').checked = tvOptions.DeleteEmptyFolders;
 
         view.querySelector('#txtMinFileSize').value = tvOptions.MinFileSizeMb;
@@ -170,7 +172,9 @@
             var tvOptions = config.TvOptions;
 
             tvOptions.IsEnabled = view.querySelector('#chkEnableTvSorting').checked;
+            tvOptions.AllowTBA = view.querySelector('#chkAllowTBA').checked;
             tvOptions.OverwriteExistingEpisodes = view.querySelector('#chkOverwriteExistingEpisodes').checked;
+            tvOptions.SingleEpisodeVersion = view.querySelector('#chkSingleEpisodeVersion').checked;
             tvOptions.DeleteEmptyFolders = view.querySelector('#chkDeleteEmptyFolders').checked;
 
             tvOptions.MinFileSizeMb = view.querySelector('#txtMinFileSize').value;

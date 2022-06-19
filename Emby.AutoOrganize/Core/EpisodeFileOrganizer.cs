@@ -188,12 +188,13 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
+                _logger.ErrorException("Error organizing file {0}", ex, path);
             }
             catch (Exception ex)
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
-                _logger.ErrorException("Error organizing file", ex);
+                _logger.ErrorException("Error organizing file {0}", ex, path);
             }
 
             _organizationService.SaveResult(result, CancellationToken.None);
@@ -337,6 +338,7 @@ namespace Emby.AutoOrganize.Core
             {
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
+                _logger.ErrorException("Error organizing file {0}", ex, result.OriginalPath);
             }
 
             return result;
@@ -451,7 +453,11 @@ namespace Emby.AutoOrganize.Core
 
             if (!_organizationService.AddToInProgressList(result, isNew))
             {
-                throw new OrganizationException("File is currently processed otherwise. Please try again later.");
+                var msg = string.Format("File {0} is currently processed otherwise. Please try again later.", sourcePath);
+                _logger.Warn(msg + " Stopping organization");
+                result.Status = FileSortingStatus.Failure;
+                result.StatusMessage = msg;
+                return;
             }
 
             try
@@ -462,21 +468,37 @@ namespace Emby.AutoOrganize.Core
                 if (string.IsNullOrEmpty(newPath))
                 {
                     var msg = string.Format("Unable to sort {0} because target path could not be determined.", sourcePath);
-                    throw new OrganizationException(msg);
+                    _logger.Info(msg + " Stopping organization");
+                    result.Status = FileSortingStatus.Failure;
+                    result.StatusMessage = msg;
+                    return;
                 }
 
                 _logger.Info("Sorting file {0} to new path {1}", sourcePath, newPath);
                 result.TargetPath = newPath;
 
                 var fileExists = _fileSystem.FileExists(result.TargetPath);
-                var otherDuplicatePaths = GetOtherDuplicatePaths(result.TargetPath, series, episode);
-
+                if (options.SingleEpisodeVersion) //add value here to ensure returned to user regardless of result below
+                { 
+                    result.DuplicatePaths = GetOtherDuplicatePaths(result.TargetPath, series, episode);
+                    _logger.Info(string.Format("otherDuplicatePaths: '{0}'", string.Join("', '", result.DuplicatePaths)));
+                } 
+                  
                 if (!options.OverwriteExistingEpisodes)
                 {
-                    if (options.CopyOriginalFile && fileExists && IsSameEpisode(sourcePath, newPath))
+                    if (options.CopyOriginalFile && fileExists && IsSameEpisode(sourcePath, newPath) && result.DuplicatePaths.Count == 1)
                     {
-                        var msg = string.Format("File '{0}' already copied to new path '{1}', stopping organization", sourcePath, newPath);
-                        _logger.Info(msg);
+                        var msg = string.Format("File '{0}' already copied to new path '{1}.'", sourcePath, newPath);
+                        _logger.Info(msg + " Stopping organization");
+                        result.Status = FileSortingStatus.SkippedExisting;
+                        result.StatusMessage = msg;
+                        return;
+                    }
+
+                    if (result.DuplicatePaths.Count > 0)
+                    {
+                        var msg = string.Format("File '{0}' already exists as: '{1}'.", sourcePath, string.Join("', '", result.DuplicatePaths), (result.DuplicatePaths.Count > 1 ? "these" : ""));
+                        _logger.Info(msg + " Stopping organization");
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         return;
@@ -484,56 +506,49 @@ namespace Emby.AutoOrganize.Core
 
                     if (fileExists)
                     {
-                        var msg = string.Format("File '{0}' already exists as '{1}', stopping organization", sourcePath, newPath);
-                        _logger.Info(msg);
+                        var msg = string.Format("File '{0}' already exists as '{1}'.", sourcePath, newPath);
+                        _logger.Info(msg + " Stopping organization");
                         result.Status = FileSortingStatus.SkippedExisting;
                         result.StatusMessage = msg;
                         result.TargetPath = newPath;
-                        return;
-                    }
-
-                    if (otherDuplicatePaths.Count > 0)
-                    {
-                        var msg = string.Format("File '{0}' already exists as these:'{1}'. Stopping organization", sourcePath, string.Join("', '", otherDuplicatePaths));
-                        _logger.Info(msg);
-                        result.Status = FileSortingStatus.SkippedExisting;
-                        result.StatusMessage = msg;
-                        result.DuplicatePaths = otherDuplicatePaths;
                         return;
                     }
                 }
 
                 PerformFileSorting(options, result);
 
-                if (options.OverwriteExistingEpisodes)
+                if (options.SingleEpisodeVersion)
                 {
                     var hasRenamedFiles = false;
 
-                    foreach (var path in otherDuplicatePaths)
+                    foreach (var path in result.DuplicatePaths)
                     {
-                        _logger.Debug("Removing duplicate episode {0}", path);
-
-                        _libraryMonitor.ReportFileSystemChangeBeginning(path);
-
-                        var renameRelatedFiles = !hasRenamedFiles &&
-                            string.Equals(_fileSystem.GetDirectoryName(path), _fileSystem.GetDirectoryName(result.TargetPath), StringComparison.OrdinalIgnoreCase);
-
-                        if (renameRelatedFiles)
+                        if (!string.Equals(path, newPath, StringComparison.OrdinalIgnoreCase))//dont remove file matching destination path
                         {
-                            hasRenamedFiles = true;
-                        }
+                            _logger.Info("Removing duplicate episode {0}", path);
 
-                        try
-                        {
-                            DeleteLibraryFile(path, renameRelatedFiles, result.TargetPath);
-                        }
-                        catch (IOException ex)
-                        {
-                            _logger.ErrorException("Error removing duplicate episode", ex, path);
-                        }
-                        finally
-                        {
-                            _libraryMonitor.ReportFileSystemChangeComplete(path, true);
+                            _libraryMonitor.ReportFileSystemChangeBeginning(path);
+
+                            var renameRelatedFiles = !hasRenamedFiles &&
+                                string.Equals(_fileSystem.GetDirectoryName(path), _fileSystem.GetDirectoryName(result.TargetPath), StringComparison.OrdinalIgnoreCase);
+
+                            if (renameRelatedFiles)
+                            {
+                                hasRenamedFiles = true;
+                            }
+
+                            try
+                            {
+                                DeleteLibraryFile(path, renameRelatedFiles, result.TargetPath);
+                            }
+                            catch (IOException ex)
+                            {
+                                _logger.ErrorException("Error removing duplicate episode {0}", ex, path);
+                            }
+                            finally
+                            {
+                                _libraryMonitor.ReportFileSystemChangeComplete(path, true);
+                            }
                         }
                     }
                 }
@@ -541,8 +556,8 @@ namespace Emby.AutoOrganize.Core
             catch (Exception ex)
             {
                 result.Status = FileSortingStatus.Failure;
-                result.StatusMessage = ex.Message;
-                _logger.Warn(ex.Message);
+                result.StatusMessage = string.Format("Error sorting episode: '{0}'.", ex.Message);
+                _logger.ErrorException("Error sorting episode: {0}", ex, episode.Path);
                 return;
             }
             finally
@@ -624,7 +639,7 @@ namespace Emby.AutoOrganize.Core
             Episode episode)
         {
             // TODO: Support date-naming?
-            if (!series.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue)
+            if (!episode.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue)
             {
                 return new List<string>();
             }
@@ -643,9 +658,9 @@ namespace Emby.AutoOrganize.Core
                     // Must be file system based and match exactly
                     if (locationType != LocationType.Virtual &&
                         i.ParentIndexNumber.HasValue &&
-                        i.ParentIndexNumber.Value == series.ParentIndexNumber &&
+                        i.ParentIndexNumber.Value == episode.ParentIndexNumber.Value &&
                         i.IndexNumber.HasValue &&
-                        i.IndexNumber.Value == episode.IndexNumber)
+                        i.IndexNumber.Value == episode.IndexNumber.Value)
                     {
 
                         if (episode.IndexNumberEnd.HasValue || i.IndexNumberEnd.HasValue)
@@ -653,10 +668,9 @@ namespace Emby.AutoOrganize.Core
                             return episode.IndexNumberEnd.HasValue && i.IndexNumberEnd.HasValue &&
                                    episode.IndexNumberEnd.Value == i.IndexNumberEnd.Value;
                         }
-
+                        
                         return true;
                     }
-
                     return false;
                 })
                 .Select(i => i.Path)
@@ -677,7 +691,9 @@ namespace Emby.AutoOrganize.Core
                 // No big deal. Maybe the season folder doesn't already exist.
             }
 
-            return episodePaths.Where(i => !string.Equals(i, targetPath, StringComparison.OrdinalIgnoreCase))
+            //include all results (including direct matches to the destination path so they can be reported in UI
+            //removed on a case by case where called elsewhere
+            return episodePaths
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
@@ -733,7 +749,7 @@ namespace Emby.AutoOrganize.Core
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorException("Error deleting {0}", ex, result.OriginalPath);
+                    _logger.ErrorException("Error deleting file {0}", ex, result.OriginalPath);
                 }
             }
         }
@@ -791,7 +807,7 @@ namespace Emby.AutoOrganize.Core
                     if (!episode.ParentIndexNumber.HasValue)
                     {
                         var msg = string.Format("No season found for {0} season {1} episode {2}", series.Name,
-                            episode.ParentIndexNumber, episode.IndexNumber);
+                            episode.ParentIndexNumber.Value, episode.IndexNumber.Value);
                         _logger.Warn(msg);
                         throw new OrganizationException(msg);
                     }
@@ -866,7 +882,22 @@ namespace Emby.AutoOrganize.Core
 
             if (seriesYear.HasValue)
             {
-                seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
+                var parsedName = _libraryManager.ParseName(seriesName.AsSpan());
+
+                var yearInName = parsedName.Year;
+                var nameWithoutYear = parsedName.Name;
+
+                if (string.IsNullOrWhiteSpace(nameWithoutYear))
+                {
+                    nameWithoutYear = seriesName;
+                }
+
+                if (!yearInName.HasValue)
+                {
+                    yearInName = seriesYear;
+                }
+                
+                seriesFullName = string.Format("{0} ({1})", nameWithoutYear, seriesYear);
             }
 
             var seasonFolderName = options.SeriesFolderPattern.
@@ -928,7 +959,7 @@ namespace Emby.AutoOrganize.Core
 
             if (episodeSearch == null)
             {
-                var msg = string.Format("No provider metadata found for {0} season {1} episode {2}", series.Name, seasonNumber, episodeNumber);
+                var msg = string.Format("No provider metadata found for {0} Season {1} Episode {2}", series.Name, seasonNumber, episodeNumber);
                 _logger.Warn(msg);
                 throw new OrganizationException(msg);
             }
@@ -1003,6 +1034,10 @@ namespace Emby.AutoOrganize.Core
 
             var episodeTitle = _fileSystem.GetValidFilename(episode.Name).Trim();
 
+            if(options.AllowTBA == false && episodeTitle == "TBA")
+            {
+                throw new OrganizationException("Returned metadata title is 'TBA'. Current settings prevent this file from being moved.");
+            }
             if (!episode.IndexNumber.HasValue || !season.IndexNumber.HasValue)
             {
                 throw new OrganizationException("GetEpisodeFileName: Mandatory param as missing!");
