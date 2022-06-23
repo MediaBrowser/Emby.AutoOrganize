@@ -332,7 +332,7 @@
 
         view.querySelector('#chkEnableMovieAutoDetect').addEventListener('change', toggleMovieLocation);
 
-        view.querySelector('.libraryFileOrganizerForm').addEventListener('submit', function (e) {
+        view.querySelector('form').addEventListener('submit', function (e) {
             e.preventDefault();
             validate();
             onSubmit(view);

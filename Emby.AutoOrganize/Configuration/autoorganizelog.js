@@ -111,19 +111,6 @@
     var currentResult;
     var pageGlobal;
 
-    function parentWithClass(elem, className) {
-
-        while (!elem.classList || !elem.classList.contains(className)) {
-            elem = elem.parentNode;
-
-            if (!elem) {
-                return null;
-            }
-        }
-
-        return elem;
-    }
-
     function showStatusMessage(id) {
 
         var item = currentResult.Items.filter(function (i) {
@@ -176,7 +163,7 @@
             fileorganizer.show(item).then(function () {
                 reloadItems(page, false);
             },
-            function () { /* Do nothing on reject */ });
+                function () { /* Do nothing on reject */ });
         });
     }
 
@@ -277,25 +264,19 @@
 
         var showControls = limit < totalRecordCount;
 
-        html += '<div class="listPaging">';
-
-        if (showControls) {
-            html += '<span style="vertical-align:middle;">';
+        if (!options.bottom || showControls) {
+            html += '<div>';
 
             var startAtDisplay = totalRecordCount ? startIndex + 1 : 0;
             html += startAtDisplay + '-' + recordsEnd + ' of ' + totalRecordCount;
 
-            html += '</span>';
-
-            html += '<div style="display:inline-block;">';
-
-            html += '<button is="paper-icon-button-light" class="btnPreviousPage autoSize" ' + (startIndex ? '' : 'disabled') + '><i class="md-icon">&#xE5C4;</i></button>';
-            html += '<button is="paper-icon-button-light" class="btnNextPage autoSize" ' + (startIndex + limit >= totalRecordCount ? 'disabled' : '') + '><i class="md-icon">&#xE5C8;</i></button>';
-
             html += '</div>';
-        }
 
-        html += '</div>';
+            if (showControls) {
+                html += '<button is="paper-icon-button-light" class="btnPreviousPage autoSize" ' + (startIndex ? '' : 'disabled') + '><i class="md-icon">&#xE5C4;</i></button>';
+                html += '<button is="paper-icon-button-light" class="btnNextPage autoSize" ' + (startIndex + limit >= totalRecordCount ? 'disabled' : '') + '><i class="md-icon">&#xE5C8;</i></button>';
+            }
+        }
 
         return html;
     }
@@ -322,7 +303,8 @@
 
             resultBody.addEventListener('click', handleItemClick);
 
-            var pagingHtml = getQueryPagingHtml({
+            var topPaging = page.querySelector('.listTopPaging');
+            topPaging.innerHTML = getQueryPagingHtml({
                 startIndex: query.StartIndex,
                 limit: query.Limit,
                 totalRecordCount: result.TotalRecordCount,
@@ -330,11 +312,15 @@
                 updatePageSizeSetting: false
             });
 
-            var topPaging = page.querySelector('.listTopPaging');
-            topPaging.innerHTML = pagingHtml;
-
             var bottomPaging = page.querySelector('.listBottomPaging');
-            bottomPaging.innerHTML = pagingHtml;
+            bottomPaging.innerHTML = getQueryPagingHtml({
+                startIndex: query.StartIndex,
+                limit: query.Limit,
+                totalRecordCount: result.TotalRecordCount,
+                showLimit: false,
+                updatePageSizeSetting: false,
+                bottom: true
+            });
 
             var btnNextTop = topPaging.querySelector(".btnNextPage");
             var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
@@ -387,8 +373,9 @@
         var html = '';
 
         html += '<td class="detailTableBodyCell">';
-        var hide = item.IsInProgress ? '' : ' hide';
-        html += '<img src="css/images/throbber.gif" alt="" class="syncSpinner' + hide + '" style="vertical-align: middle;" />';
+        if (item.IsInProgress) {
+            html += 'In Progress';
+        }
         html += '</td>';
 
         html += '<td class="detailTableBodyCell" data-title="Date">';
@@ -441,21 +428,21 @@
 
         var id;
 
-        var buttonStatus = parentWithClass(e.target, 'btnShowStatusMessage');
+        var buttonStatus = e.target.closest('.btnShowStatusMessage');
         if (buttonStatus) {
 
             id = buttonStatus.getAttribute('data-resultid');
             showStatusMessage(id);
         }
 
-        var buttonOrganize = parentWithClass(e.target, 'btnProcessResult');
+        var buttonOrganize = e.target.closest('.btnProcessResult');
         if (buttonOrganize) {
 
             id = buttonOrganize.getAttribute('data-resultid');
             organizeFile(e.view, id);
         }
 
-        var buttonDelete = parentWithClass(e.target, 'btnDeleteResult');
+        var buttonDelete = e.target.closest('.btnDeleteResult');
         if (buttonDelete) {
 
             id = buttonDelete.getAttribute('data-resultid');
@@ -545,8 +532,8 @@
             // on here
             taskButton({
                 mode: 'on',
-                progressElem: view.querySelector('.organizeProgress'),
                 panel: view.querySelector('.organizeTaskPanel'),
+                progressElem: view.querySelector('.organizeProgress'),
                 taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
@@ -565,6 +552,9 @@
             // off here
             taskButton({
                 mode: 'off',
+                panel: view.querySelector('.organizeTaskPanel'),
+                progressElem: view.querySelector('.organizeProgress'),
+                taskKey: 'AutoOrganize',
                 button: view.querySelector('.btnOrganize')
             });
         });
