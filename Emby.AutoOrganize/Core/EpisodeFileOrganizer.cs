@@ -16,10 +16,10 @@ using Emby.AutoOrganize.Model;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.IO;
-using Emby.Naming.Common;
-using Emby.Naming.TV;
 using MediaBrowser.Model.Providers;
 using EpisodeInfo = MediaBrowser.Controller.Providers.EpisodeInfo;
+using Emby.Naming.TV;
+using Emby.Naming.Common;
 
 namespace Emby.AutoOrganize.Core
 {
@@ -44,19 +44,6 @@ namespace Emby.AutoOrganize.Core
             _libraryManager = libraryManager;
             _libraryMonitor = libraryMonitor;
             _providerManager = providerManager;
-        }
-
-        private NamingOptions _namingOptions;
-        private NamingOptions GetNamingOptionsInternal()
-        {
-            if (_namingOptions == null)
-            {
-                var options = new NamingOptions();
-
-                _namingOptions = options;
-            }
-
-            return _namingOptions;
         }
 
         private FileOrganizerType CurrentFileOrganizerType => FileOrganizerType.Episode;
@@ -87,10 +74,27 @@ namespace Emby.AutoOrganize.Core
                     return result;
                 }
 
-                var namingOptions = GetNamingOptionsInternal();
+                var namingOptions = _libraryManager.GetNamingOptions();
                 var resolver = new EpisodeResolver(namingOptions);
 
-                var episodeInfo = resolver.Resolve(path, false) ??
+                // if the watch folder is mixing movies and episodes, parsing options will need to be less aggressive
+                var isWatchFolderMixed = false;
+
+                var episodeResolverOptions = new EpisodeResolverOptions
+                {
+                    EnableOptimisticExpressions = !isWatchFolderMixed
+                };
+
+                if (isWatchFolderMixed)
+                {
+                    episodeResolverOptions.EpisodeExpressionTypes = new[] { EpisodeExpressionType.General };
+                }
+                else
+                {
+                    episodeResolverOptions.EpisodeExpressionTypes = new[] { EpisodeExpressionType.General, EpisodeExpressionType.RomanNumerals, EpisodeExpressionType.CombinedSeasonAndEpisodeNumbers };
+                }
+
+                var episodeInfo = resolver.Resolve(path.AsSpan(), false, episodeResolverOptions) ??
                     new Naming.TV.EpisodeInfo();
 
                 var seriesName = episodeInfo.SeriesName;
