@@ -213,8 +213,6 @@ namespace Emby.AutoOrganize.Core
         {
             if (options.AutoDetectSeries)
             {
-                string metadataLanguage = null;
-                string metadataCountryCode = null;
                 BaseItem targetFolder = null;
 
                 if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
@@ -222,25 +220,17 @@ namespace Emby.AutoOrganize.Core
                     targetFolder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
                 }
 
-                if (targetFolder != null)
-                {
-                    metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
-                    metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
-                }
-
                 var seriesInfo = new SeriesInfo
                 {
                     Name = seriesName,
-                    Year = seriesYear,
-                    MetadataCountryCode = metadataCountryCode,
-                    MetadataLanguage = metadataLanguage
+                    Year = seriesYear
                 };
 
                 var searchResultsTask = await _providerManager.GetRemoteSearchResults<Series, SeriesInfo>(new RemoteSearchQuery<SeriesInfo>
                 {
                     SearchInfo = seriesInfo
 
-                }, targetFolder, cancellationToken);
+                }, targetFolder, cancellationToken).ConfigureAwait(false);
 
                 var finalResult = searchResultsTask.FirstOrDefault();
 
@@ -412,7 +402,7 @@ namespace Emby.AutoOrganize.Core
             FileOrganizationResult result,
             CancellationToken cancellationToken)
         {
-            var episode = await GetMatchingEpisode(series, seasonNumber, episodeNumber, endingEpiosdeNumber, result, premiereDate, cancellationToken);
+            var episode = await GetMatchingEpisode(series, seasonNumber, episodeNumber, endingEpiosdeNumber, result, premiereDate, cancellationToken).ConfigureAwait(false);
 
             Season season;
             season = !string.IsNullOrEmpty(episode.Season?.Path)
@@ -765,7 +755,7 @@ namespace Emby.AutoOrganize.Core
                            && e.IndexNumber == episodeNumber
                            && e.IndexNumberEnd == endingEpiosdeNumber
                            && e.LocationType == LocationType.FileSystem
-                           && Path.GetExtension(e.Path) == Path.GetExtension(result.OriginalPath));
+                           && string.Equals(Path.GetExtension(e.Path), Path.GetExtension(result.OriginalPath), StringComparison.Ordinal));
             }
 
             if (episode == null)
@@ -915,8 +905,6 @@ namespace Emby.AutoOrganize.Core
             {
                 IndexNumber = episodeNumber,
                 IndexNumberEnd = endingEpisodeNumber,
-                MetadataCountryCode = series.GetPreferredMetadataCountryCode(),
-                MetadataLanguage = series.GetPreferredMetadataLanguage(),
                 ParentIndexNumber = seasonNumber,
                 SeriesProviderIds = series.ProviderIds,
                 PremiereDate = premiereDate

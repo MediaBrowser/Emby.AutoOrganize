@@ -115,7 +115,7 @@ namespace Emby.AutoOrganize.Core
             return result;
         }
 
-        private Movie CreateNewMovie(MovieFileOrganizationRequest request, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options, CancellationToken cancellationToken)
+        private Movie CreateNewMovie(MovieFileOrganizationRequest request, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
             // To avoid Movie duplicate by mistake (Missing SmartMatch and wrong selection in UI)
             var movie = GetMatchingMovie(request.NewMovieName, request.NewMovieYear, targetFolder, result, options);
@@ -163,7 +163,7 @@ namespace Emby.AutoOrganize.Core
                     }
 
                     // To avoid Series duplicate by mistake (Missing SmartMatch and wrong selection in UI)
-                    movie = CreateNewMovie(request, targetFolder, result, options, cancellationToken);
+                    movie = CreateNewMovie(request, targetFolder, result, options);
                 }
 
                 if (movie == null)
@@ -402,8 +402,6 @@ namespace Emby.AutoOrganize.Core
                     yearInName = movieYear;
                 }
 
-                string metadataLanguage = null;
-                string metadataCountryCode = null;
                 BaseItem targetFolder = null;
 
                 if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
@@ -411,25 +409,17 @@ namespace Emby.AutoOrganize.Core
                     targetFolder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
                 }
 
-                if (targetFolder != null)
-                {
-                    metadataLanguage = targetFolder.GetPreferredMetadataLanguage();
-                    metadataCountryCode = targetFolder.GetPreferredMetadataCountryCode();
-                }
-
                 var movieInfo = new MovieInfo
                 {
                     Name = nameWithoutYear,
-                    Year = yearInName,
-                    MetadataCountryCode = metadataCountryCode,
-                    MetadataLanguage = metadataLanguage
+                    Year = yearInName
                 };
 
                 var searchResultsTask = await _providerManager.GetRemoteSearchResults<Movie, MovieInfo>(new RemoteSearchQuery<MovieInfo>
                 {
                     SearchInfo = movieInfo
 
-                }, targetFolder, cancellationToken);
+                }, targetFolder, cancellationToken).ConfigureAwait(false);
 
                 var finalResult = searchResultsTask.FirstOrDefault();
 
@@ -444,7 +434,7 @@ namespace Emby.AutoOrganize.Core
                         TargetFolder = options.DefaultMovieLibraryPath
                     };
 
-                    var movie = CreateNewMovie(organizationRequest, targetFolder, result, options, cancellationToken);
+                    var movie = CreateNewMovie(organizationRequest, targetFolder, result, options);
 
                     return new Tuple<Movie, RemoteSearchResult>(movie, finalResult);
                 }
