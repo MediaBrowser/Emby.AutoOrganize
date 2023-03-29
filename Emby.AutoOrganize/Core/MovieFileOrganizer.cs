@@ -155,11 +155,16 @@ namespace Emby.AutoOrganize.Core
 
                 if (request.NewMovieProviderIds.Count > 0)
                 {
+                    if (string.IsNullOrWhiteSpace(request.TargetFolder))
+                    {
+                        request.TargetFolder = options.DefaultMovieLibraryPath;
+                    }
+
                     BaseItem targetFolder = null;
 
-                    if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                    if (!string.IsNullOrEmpty(request.TargetFolder))
                     {
-                        targetFolder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+                        targetFolder = _libraryManager.FindByPath(request.TargetFolder, true);
                     }
 
                     // To avoid Series duplicate by mistake (Missing SmartMatch and wrong selection in UI)
@@ -402,11 +407,12 @@ namespace Emby.AutoOrganize.Core
                     yearInName = movieYear;
                 }
 
+                var targetFolderPath = options.DefaultMovieLibraryPath;
                 BaseItem targetFolder = null;
 
-                if (!string.IsNullOrEmpty(options.DefaultMovieLibraryPath))
+                if (!string.IsNullOrEmpty(targetFolderPath))
                 {
-                    targetFolder = _libraryManager.FindByPath(options.DefaultMovieLibraryPath, true);
+                    targetFolder = _libraryManager.FindByPath(targetFolderPath, true);
                 }
 
                 var movieInfo = new MovieInfo
@@ -431,7 +437,7 @@ namespace Emby.AutoOrganize.Core
                         NewMovieName = finalResult.Name,
                         NewMovieProviderIds = finalResult.ProviderIds,
                         NewMovieYear = finalResult.ProductionYear,
-                        TargetFolder = options.DefaultMovieLibraryPath
+                        TargetFolder = targetFolderPath
                     };
 
                     var movie = CreateNewMovie(organizationRequest, targetFolder, result, options);

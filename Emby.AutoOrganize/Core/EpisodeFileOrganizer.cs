@@ -213,11 +213,12 @@ namespace Emby.AutoOrganize.Core
         {
             if (options.AutoDetectSeries)
             {
+                var targetFolderPath = options.DefaultSeriesLibraryPath;
                 BaseItem targetFolder = null;
 
-                if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                if (!string.IsNullOrEmpty(targetFolderPath))
                 {
-                    targetFolder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
+                    targetFolder = _libraryManager.FindByPath(targetFolderPath, true);
                 }
 
                 var seriesInfo = new SeriesInfo
@@ -242,7 +243,7 @@ namespace Emby.AutoOrganize.Core
                         NewSeriesName = finalResult.Name,
                         NewSeriesProviderIds = finalResult.ProviderIds,
                         NewSeriesYear = finalResult.ProductionYear,
-                        TargetFolder = options.DefaultSeriesLibraryPath
+                        TargetFolder = targetFolderPath
                     };
 
                     return CreateNewSeries(organizationRequest, targetFolder, finalResult, options, cancellationToken);
@@ -297,9 +298,14 @@ namespace Emby.AutoOrganize.Core
                 {
                     BaseItem targetFolder = null;
 
-                    if (!string.IsNullOrEmpty(options.DefaultSeriesLibraryPath))
+                    if (string.IsNullOrWhiteSpace(request.TargetFolder))
                     {
-                        targetFolder = _libraryManager.FindByPath(options.DefaultSeriesLibraryPath, true);
+                        request.TargetFolder = options.DefaultSeriesLibraryPath;
+                    }
+
+                    if (!string.IsNullOrEmpty(request.TargetFolder))
+                    {
+                        targetFolder = _libraryManager.FindByPath(request.TargetFolder, true);
                     }
 
                     series = CreateNewSeries(request, targetFolder, null, options, cancellationToken);
