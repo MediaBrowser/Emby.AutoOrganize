@@ -392,21 +392,6 @@ namespace Emby.AutoOrganize.Core
         {
             if (options.AutoDetectMovie)
             {
-                var parsedName = _libraryManager.ParseName(movieName.AsSpan());
-
-                var yearInName = parsedName.Year;
-                var nameWithoutYear = parsedName.Name;
-
-                if (string.IsNullOrWhiteSpace(nameWithoutYear))
-                {
-                    nameWithoutYear = movieName;
-                }
-
-                if (!yearInName.HasValue)
-                {
-                    yearInName = movieYear;
-                }
-
                 var targetFolderPath = options.DefaultMovieLibraryPath;
                 BaseItem targetFolder = null;
 
@@ -417,8 +402,8 @@ namespace Emby.AutoOrganize.Core
 
                 var movieInfo = new MovieInfo
                 {
-                    Name = nameWithoutYear,
-                    Year = yearInName
+                    Name = movieName,
+                    Year = movieYear
                 };
 
                 var searchResultsTask = await _providerManager.GetRemoteSearchResults<Movie, MovieInfo>(new RemoteSearchQuery<MovieInfo>
@@ -451,23 +436,8 @@ namespace Emby.AutoOrganize.Core
 
         private Movie GetMatchingMovie(string movieName, int? movieYear, BaseItem targetFolder, FileOrganizationResult result, MovieFileOrganizationOptions options)
         {
-            var parsedName = _libraryManager.ParseName(movieName.AsSpan());
-
-            var yearInName = parsedName.Year;
-            var nameWithoutYear = parsedName.Name;
-
-            if (string.IsNullOrWhiteSpace(nameWithoutYear))
-            {
-                nameWithoutYear = movieName;
-            }
-
-            if (!yearInName.HasValue)
-            {
-                yearInName = movieYear;
-            }
-
-            result.ExtractedName = nameWithoutYear;
-            result.ExtractedYear = yearInName;
+            result.ExtractedName = movieName;
+            result.ExtractedYear = movieYear;
 
             var movie = _libraryManager.GetItemList(new InternalItemsQuery
             {
@@ -475,8 +445,8 @@ namespace Emby.AutoOrganize.Core
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
                 AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
-                SearchTerm = nameWithoutYear,
-                Years = yearInName.HasValue ? new[] { yearInName.Value } : Array.Empty<int>()
+                SearchTerm = movieName,
+                Years = movieYear.HasValue ? new[] { movieYear.Value } : Array.Empty<int>()
             })
                 .Cast<Movie>()
                 // Check For the right extension (to handle quality upgrade)
