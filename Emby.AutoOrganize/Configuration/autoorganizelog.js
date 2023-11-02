@@ -596,9 +596,8 @@
 
         let options = ListPage.prototype.getBaseListRendererOptions.apply(this, arguments);
 
-        options.draggable = true;
+        options.draggable = false;
         options.draggableXActions = true;
-        options.draggableXY = false;
 
         options.action = layoutManager.tv ? 'none' : 'edit';
 
