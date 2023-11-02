@@ -1,15 +1,15 @@
 ﻿<div class="formDialogHeader">
-    <button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>
+    <button type="button" is="emby-dialogclosebutton"></button>
     <h3 class="formDialogHeaderTitle"></h3>
 </div>
 
-<div is="emby-scroller" data-horizontal="false" data-centerfocus="card" class="formDialogContent">
+<div is="emby-scroller" data-horizontal="false" data-forcescrollbar="true" data-focusscroll="true" class="formDialogContent">
     <div class="scrollSlider">
-        <form class="dialogContentInner episodeCorrectionForm" style="max-width: 100%;">
+        <form class="dialogContentInner dialog-content-centered padded-left padded-right episodeCorrectionForm">
 
             <div class="selectContainer">
-                <div style="display: flex; align-items: center;">
-                    <div style="flex-grow:1; position: relative;">
+                <div class="flex align-items-center">
+                    <div class="flex-grow" style="position: relative;">
                         <select is="emby-select" id="selectMediaType" data-mini="true" required="required" label="Media type">
                             <option></option>
                             <option value="Episode">Series</option>
@@ -24,8 +24,8 @@
             <div id="divPermitChoice">
                 <div id="divGlobalChoice">
                     <div class="selectContainer">
-                        <div style="display: flex; align-items: center;">
-                            <div style="flex-grow: 1; position: relative;">
+                        <div class="flex align-items-center">
+                            <div class="flex-grow" style="position: relative;">
                                 <select is="emby-select" id="selectMedias" data-mini="true" required="required"></select>
                             </div>
                             <button type="button" is="paper-icon-button-light" id="btnNewMedia" class="autoSize"><i class="md-icon">add</i></button>
@@ -60,7 +60,7 @@
 
                 <div class="formDialogFooter">
                     <button is="emby-button" type="submit" class="raised button-submit block formDialogFooterItem">
-                        <span>OK</span>
+                        <span>Organize</span>
                     </button>
                 </div>
             </div>

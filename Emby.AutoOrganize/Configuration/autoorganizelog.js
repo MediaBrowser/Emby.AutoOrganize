@@ -1,14 +1,24 @@
-﻿define(['globalize', 'serverNotifications', 'events', (ApiClient.isMinServerVersion('4.7.3') ? 'taskButton' : 'scripts/taskbutton'), 'datetime', 'loading', 'mainTabsManager', 'paper-icon-button-light', 'emby-linkbutton'], function (globalize, serverNotifications, events, taskButton, datetime, loading, mainTabsManager) {
+﻿define(['ListPage', 'layoutManager', 'ApiClient', 'itemManager', 'BaseItemController', 'globalize', 'connectionManager', 'datetime', 'pluginManager', 'loading', 'formHelper', 'mainTabsManager', 'taskButton', 'events', 'serverNotifications'], function (ListPage, layoutManager, ApiClient, itemManager, BaseItemController, globalize, connectionManager, datetime, pluginManager, loading, formHelper, mainTabsManager, taskButton, events, serverNotifications) {
     'use strict';
 
-    ApiClient.getFileOrganizationResults = function (options) {
+    ApiClient.prototype.getFileOrganizationResults = function (options) {
 
         var url = this.getUrl("Library/FileOrganization", options || {});
 
-        return this.getJSON(url);
+        var serverId = this.serverId();
+
+        return this.getJSON(url).then(function (result) {
+
+            var items = result.Items;
+            for (var i = 0, length = items.length; i < length; i++) {
+                items[i].ServerId = serverId;
+            }
+
+            return result;
+        });
     };
 
-    ApiClient.deleteOriginalFileFromOrganizationResult = function (id) {
+    ApiClient.prototype.deleteOriginalFileFromOrganizationResult = function (id) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/File");
 
@@ -18,7 +28,7 @@
         });
     };
 
-    ApiClient.clearOrganizationLog = function () {
+    ApiClient.prototype.clearOrganizationLog = function () {
 
         var url = this.getUrl("Library/FileOrganizations");
 
@@ -28,7 +38,7 @@
         });
     };
 
-    ApiClient.clearOrganizationCompletedLog = function () {
+    ApiClient.prototype.clearOrganizationCompletedLog = function () {
 
         var url = this.getUrl("Library/FileOrganizations/Completed");
 
@@ -38,7 +48,7 @@
         });
     };
 
-    ApiClient.performOrganization = function (id) {
+    ApiClient.prototype.performOrganization = function (id) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
 
@@ -48,7 +58,7 @@
         });
     };
 
-    ApiClient.performEpisodeOrganization = function (id, options) {
+    ApiClient.prototype.performEpisodeOrganization = function (id, options) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
 
@@ -60,7 +70,7 @@
         });
     };
 
-    ApiClient.performMovieOrganization = function (id, options) {
+    ApiClient.prototype.performMovieOrganization = function (id, options) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
 
@@ -72,7 +82,7 @@
         });
     };
 
-    ApiClient.getSmartMatchInfos = function (options) {
+    ApiClient.prototype.getSmartMatchInfos = function (options) {
 
         options = options || {};
 
@@ -85,7 +95,7 @@
         });
     };
 
-    ApiClient.deleteSmartMatchEntries = function (entries) {
+    ApiClient.prototype.deleteSmartMatchEntries = function (entries) {
 
         var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
 
@@ -102,82 +112,187 @@
         });
     };
 
-    var query = {
+    function AutoOrganizeEntryController() {
 
-        StartIndex: 0,
-        Limit: 50
+        BaseItemController.apply(this, arguments);
+    }
+
+    Object.assign(AutoOrganizeEntryController.prototype, BaseItemController.prototype);
+
+    AutoOrganizeEntryController.prototype.getTypeNames = function () {
+        return ['AutoOrganizeEntry'];
     };
 
-    var currentResult;
-    var pageGlobal;
+    AutoOrganizeEntryController.prototype.getDisplayName = function (item, options) {
+        return item.OriginalPath;
+    };
 
-    function showStatusMessage(id) {
+    AutoOrganizeEntryController.prototype.isSingleItemFetchRequired = function (typeName) {
+        return false;
+    };
 
-        var item = currentResult.Items.filter(function (i) {
+    AutoOrganizeEntryController.prototype.getDefaultIcon = function (item) {
 
-            return i.Id === id;
-        })[0];
+        return '&#xe873;';
+    };
 
-        Dashboard.alert({
+    AutoOrganizeEntryController.prototype.canDelete = function (item, user) {
 
-            title: getStatusText(item, false),
-            message: item.StatusMessage
-        });
-    }
+        return item.Status !== 'Success';
+    };
 
-    function deleteOriginalFile(page, id) {
+    AutoOrganizeEntryController.prototype.enableLibraryItemDeleteConfirmation = function () {
 
-        var item = currentResult.Items.filter(function (i) {
+        return false;
+    };
 
-            return i.Id === id;
-        })[0];
+    AutoOrganizeEntryController.prototype.canRate = function (item) {
+        return false;
+    };
 
-        var message = 'The following file will be deleted:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'Are you sure you wish to proceed?';
+    AutoOrganizeEntryController.prototype.canMarkPlayed = function (item) {
+        return false;
+    };
 
-        require(['confirm'], function (confirm) {
+    AutoOrganizeEntryController.prototype.canAddToPlaylist = function (item) {
 
-            confirm(message, 'Delete File').then(function () {
+        return false;
+    };
 
-                loading.show();
+    AutoOrganizeEntryController.prototype.canAddToCollection = function (item, user) {
 
-                ApiClient.deleteOriginalFileFromOrganizationResult(id).then(function () {
+        return false;
+    };
 
-                    loading.hide();
+    AutoOrganizeEntryController.prototype.canConvert = function (item, user) {
 
-                    reloadItems(page, true);
+        return false;
+    };
 
-                }, Dashboard.processErrorResponse);
-            });
-        });
-    }
+    AutoOrganizeEntryController.prototype.canEdit = function (items, user) {
 
-    function organizeFileWithCorrections(page, item) {
+        if (items.length === 1) {
+            return items[0].Status !== 'Success';
+        }
 
-        showCorrectionPopup(page, item);
-    }
+        return false;
+    };
 
-    function showCorrectionPopup(page, item) {
+    AutoOrganizeEntryController.prototype.canEditImages = function (item, user) {
 
-        require([Dashboard.getConfigurationResourceUrl('FileOrganizerJs')], function (fileorganizer) {
+        return false;
+    };
 
-            fileorganizer.show(item).then(function () {
-                reloadItems(page, false);
+    AutoOrganizeEntryController.prototype.canEditSubtitles = function (item, user) {
+
+        return false;
+    };
+
+    AutoOrganizeEntryController.prototype.getEditCommandText = function (item) {
+
+        return globalize.translate('Organize');
+    };
+    AutoOrganizeEntryController.prototype.isDeletePrimaryCommand = function (itemType) {
+
+        return true;
+    };
+
+    AutoOrganizeEntryController.prototype.getNameSortOption = function (itemType) {
+
+        return null;
+    };
+
+    AutoOrganizeEntryController.prototype.getDeleteMessages = function () {
+
+        return {
+            single: {
+                text: 'Delete file?',
+                title: 'Delete Auto Organize Entry',
+                confirmText: globalize.translate('Delete')
             },
-                function () { /* Do nothing on reject */ });
+            plural: {
+                text: 'Delete files?',
+                title: 'Delete Auto Organize Entry',
+                confirmText: globalize.translate('Delete')
+            }
+        };
+    };
+
+    AutoOrganizeEntryController.prototype.canRefreshMetadata = function (item, user) {
+
+        return false;
+    };
+
+    AutoOrganizeEntryController.prototype.getAvailableFields = function (options) {
+
+        let fields = BaseItemController.prototype.getAvailableFields.apply(this, arguments);
+
+        fields = [];
+
+        fields.push({
+            id: 'Name',
+            name: globalize.translate('Original Path'),
+            size: 80,
+            sortBy: null,
+            defaultVisible: '*'
         });
-    }
 
-    function organizeFile(page, id) {
+        fields.push({
+            id: 'TargetPath',
+            name: globalize.translate('Target Path'),
+            size: 80,
+            sortBy: null,
+            defaultVisible: 'datagrid'
+        });
 
-        var item = currentResult.Items.filter(function (i) {
+        fields.push({
+            id: 'DateOrganized',
+            name: globalize.translate('Date'),
+            size: 20,
+            sortBy: null,
+            defaultVisible: 'datagrid'
+        });
 
-            return i.Id === id;
-        })[0];
+        fields.push({
+            id: 'StatusDisplay',
+            name: globalize.translate('Status'),
+            size: 12,
+            sortBy: null,
+            viewTypes: 'datagrid',
+            defaultVisible: 'datagrid'
+        });
+
+        fields.push({
+            id: 'StatusMessage',
+            name: globalize.translate('Status Message'),
+            size: 80,
+            sortBy: null,
+            viewTypes: 'datagrid',
+            defaultVisible: 'datagrid'
+        });
+
+        return fields;
+    };
+
+    AutoOrganizeEntryController.prototype.deleteItemsInternal = function (options) {
+
+        const apiClient = connectionManager.getApiClient(options.items[0]);
+        let promises = options.items.map(function (item) {
+            return apiClient.deleteOriginalFileFromOrganizationResult(item.Id);
+        });
+
+        return Promise.all(promises);
+    };
+
+    AutoOrganizeEntryController.prototype.editItems = function (items, options) {
+
+        var item = items[0];
 
         if (!item.TargetPath) {
-            organizeFileWithCorrections(page, item);
+            return require([pluginManager.getConfigurationResourceUrl('FileOrganizerJs')]).then(function (responses) {
 
-            return;
+                return responses[0].show(item);
+            });
         }
 
         var message = 'The following file will be moved from:' + '<br/><br/>' + item.OriginalPath + '<br/><br/>' + 'To:' + '<br/><br/>' + item.TargetPath;
@@ -190,373 +305,272 @@
 
         message += '<br/><br/>' + 'Are you sure you wish to proceed?';
 
-        require(['confirm'], function (confirm) {
+        return require(['confirm']).then(function (responses) {
 
-            confirm(message, 'Organize File').then(function () {
+            return responses[0](message, 'Organize File').then(function () {
 
                 loading.show();
 
-                ApiClient.performOrganization(id).then(function () {
+                return ApiClient.performOrganization(item.Id).then(function () {
 
                     loading.hide();
 
-                    reloadItems(page, true);
-
-                }, Dashboard.processErrorResponse);
+                }, formHelper.handleErrorResponse);
             });
         });
-    }
+    };
 
-    function reloadItems(page, showSpinner) {
+    function getColor(item) {
 
-        if (showSpinner) {
-            loading.show();
+        if (item.Status === 'Failure') {
+            return 'color:#cc0000';
+        }
+        if (item.Status === 'Success') {
+            return 'color:green';
         }
 
-        ApiClient.getFileOrganizationResults(query).then(function (result) {
-
-            currentResult = result;
-            renderResults(page, result);
-
-            loading.hide();
-        }, Dashboard.processErrorResponse);
+        return null;
     }
 
-    function getStatusText(item, enhance) {
+    function getStatusDisplay(item) {
 
         var status = item.Status;
-
-        var color = null;
 
         if (status === 'SkippedExisting') {
             status = 'Skipped';
         }
         else if (status === 'Failure') {
-            color = '#cc0000';
             status = 'Failed';
         }
         if (status === 'Success') {
-            color = 'green';
             status = 'Success';
         }
 
-        if (enhance) {
-
-            if (item.StatusMessage) {
-
-                return '<a style="color:' + color + ';" data-resultid="' + item.Id + '" is="emby-linkbutton" href="#" class="button-link btnShowStatusMessage">' + status + '</a>';
-            } else {
-                return '<span data-resultid="' + item.Id + '" style="color:' + color + ';">' + status + '</span>';
-            }
-        }
-
-        return status;
+        return '<span style="' + getColor(item) + ';">' + status + '</span>';
     }
 
-    function getQueryPagingHtml(options) {
-        var startIndex = options.startIndex;
-        var limit = options.limit;
-        var totalRecordCount = options.totalRecordCount;
+    AutoOrganizeEntryController.prototype.resolveField = function (item, field) {
 
-        var html = '';
+        switch (field) {
 
-        var recordsEnd = Math.min(startIndex + limit, totalRecordCount);
-
-        var showControls = limit < totalRecordCount;
-
-        if (!options.bottom || showControls) {
-            html += '<div>';
-
-            var startAtDisplay = totalRecordCount ? startIndex + 1 : 0;
-            html += startAtDisplay + '-' + recordsEnd + ' of ' + totalRecordCount;
-
-            html += '</div>';
-
-            if (showControls) {
-                html += '<button is="paper-icon-button-light" class="btnPreviousPage autoSize" ' + (startIndex ? '' : 'disabled') + '><i class="md-icon">&#xE5C4;</i></button>';
-                html += '<button is="paper-icon-button-light" class="btnNextPage autoSize" ' + (startIndex + limit >= totalRecordCount ? 'disabled' : '') + '><i class="md-icon">&#xE5C8;</i></button>';
-            }
+            case 'ListViewTargetPath':
+                return item.TargetPath ? ('<i class="md-icon autortl" style="font-size:150%;margin-inline-end:.5em;">arrow_forward</i>' + item.TargetPath) : null;
+            case 'StatusDisplay':
+                return getStatusDisplay(item);
+            case 'DateOrganized':
+                {
+                    let val = item.Date;
+                    return val ? datetime.toLocaleString(new Date(Date.parse(val))) : null;
+                }
+            case 'ListViewStatusMessage':
+                return getStatusDisplay(item) + ': ' + item.StatusMessage;
+            default:
+                return BaseItemController.prototype.resolveField.apply(this, arguments);
         }
+    };
 
-        return html;
-    }
-
-    function renderResults(page, result) {
-
-        if (Object.prototype.toString.call(page) !== "[object Window]") {
-
-            var rows = result.Items.map(function (item) {
-
-                var html = '';
-
-                html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded" id="row' + item.Id + '">';
-
-                html += renderItemRow(item);
-
-                html += '</tr>';
-
-                return html;
-            }).join('');
-
-            var resultBody = page.querySelector('.resultBody');
-            resultBody.innerHTML = rows;
-
-            resultBody.addEventListener('click', handleItemClick);
-
-            var topPaging = page.querySelector('.listTopPaging');
-            topPaging.innerHTML = getQueryPagingHtml({
-                startIndex: query.StartIndex,
-                limit: query.Limit,
-                totalRecordCount: result.TotalRecordCount,
-                showLimit: false,
-                updatePageSizeSetting: false
-            });
-
-            var bottomPaging = page.querySelector('.listBottomPaging');
-            bottomPaging.innerHTML = getQueryPagingHtml({
-                startIndex: query.StartIndex,
-                limit: query.Limit,
-                totalRecordCount: result.TotalRecordCount,
-                showLimit: false,
-                updatePageSizeSetting: false,
-                bottom: true
-            });
-
-            var btnNextTop = topPaging.querySelector(".btnNextPage");
-            var btnNextBottom = bottomPaging.querySelector(".btnNextPage");
-            var btnPrevTop = topPaging.querySelector(".btnPreviousPage");
-            var btnPrevBottom = bottomPaging.querySelector(".btnPreviousPage");
-
-            if (btnNextTop) {
-                btnNextTop.addEventListener('click', function () {
-                    query.StartIndex += query.Limit;
-                    reloadItems(page, true);
-                });
-            }
-
-            if (btnNextBottom) {
-                btnNextBottom.addEventListener('click', function () {
-                    query.StartIndex += query.Limit;
-                    reloadItems(page, true);
-                });
-            }
-
-            if (btnPrevTop) {
-                btnPrevTop.addEventListener('click', function () {
-                    query.StartIndex -= query.Limit;
-                    reloadItems(page, true);
-                });
-            }
-
-            if (btnPrevBottom) {
-                btnPrevBottom.addEventListener('click', function () {
-                    query.StartIndex -= query.Limit;
-                    reloadItems(page, true);
-                });
-            }
-
-            var btnClearLog = page.querySelector('.btnClearLog');
-            var btnClearCompleted = page.querySelector('.btnClearCompleted');
-
-            if (result.TotalRecordCount) {
-                btnClearLog.classList.remove('hide');
-                btnClearCompleted.classList.remove('hide');
-            } else {
-                btnClearLog.classList.add('hide');
-                btnClearCompleted.classList.add('hide');
-            }
-        }
-    }
-
-    function renderItemRow(item) {
-
-        var html = '';
-
-        html += '<td class="detailTableBodyCell">';
-        if (item.IsInProgress) {
-            html += 'In Progress';
-        }
-        html += '</td>';
-
-        html += '<td class="detailTableBodyCell" data-title="Date">';
-        var date = datetime.parseISO8601Date(item.Date, true);
-        html += datetime.toLocaleDateString(date);
-        html += '</td>';
-
-        html += '<td data-title="Source" class="detailTableBodyCell fileCell">';
-        var status = item.Status;
-
-        if (item.IsInProgress) {
-            html += '<span style="color:darkorange;">';
-            html += item.OriginalFileName;
-            html += '</span>';
-        }
-        else if (status === 'SkippedExisting') {
-            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:blue;" href="#" class="button-link btnShowStatusMessage">';
-            html += item.OriginalFileName;
-            html += '</a>';
-        }
-        else if (status === 'Failure') {
-            html += '<a is="emby-linkbutton" data-resultid="' + item.Id + '" style="color:red;" href="#" class="button-link btnShowStatusMessage">';
-            html += item.OriginalFileName;
-            html += '</a>';
-        } else {
-            html += '<span style="color:green;">';
-            html += item.OriginalFileName;
-            html += '</span>';
-        }
-        html += '</td>';
-
-        html += '<td data-title="Destination" class="detailTableBodyCell fileCell">';
-        html += item.TargetPath || '';
-        html += '</td>';
-
-        html += '<td class="detailTableBodyCell organizerButtonCell" style="whitespace:no-wrap;">';
-
-        if (item.Status !== 'Success') {
-
-            html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnProcessResult organizerButton autoSize" title="Organize"><i class="md-icon">folder</i></button>';
-            html += '<button type="button" is="paper-icon-button-light" data-resultid="' + item.Id + '" class="btnDeleteResult organizerButton autoSize" title="Delete"><i class="md-icon">delete</i></button>';
-        }
-
-        html += '</td>';
-
-        return html;
-    }
-
-    function handleItemClick(e) {
-
-        var id;
-
-        var buttonStatus = e.target.closest('.btnShowStatusMessage');
-        if (buttonStatus) {
-
-            id = buttonStatus.getAttribute('data-resultid');
-            showStatusMessage(id);
-        }
-
-        var buttonOrganize = e.target.closest('.btnProcessResult');
-        if (buttonOrganize) {
-
-            id = buttonOrganize.getAttribute('data-resultid');
-            organizeFile(e.view, id);
-        }
-
-        var buttonDelete = e.target.closest('.btnDeleteResult');
-        if (buttonDelete) {
-
-            id = buttonDelete.getAttribute('data-resultid');
-            deleteOriginalFile(e.view, id);
-        }
-    }
-
-    function onServerEvent(e, apiClient, data) {
-
-        if (e.type === 'ScheduledTaskEnded') {
-
-            if (data && data.Key === 'AutoOrganize') {
-                reloadItems(pageGlobal, false);
-            }
-        } else if (e.type === 'AutoOrganize_ItemUpdated' && data) {
-
-            updateItemStatus(pageGlobal, data);
-        } else {
-
-            reloadItems(pageGlobal, false);
-        }
-    }
-
-    function updateItemStatus(page, item) {
-
-        var rowId = '#row' + item.Id;
-        var row = page.querySelector(rowId);
-
-        if (row) {
-
-            row.innerHTML = renderItemRow(item);
-        }
-    }
+    itemManager.registerItemController(new AutoOrganizeEntryController());
 
     function getTabs() {
         return [
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeLog'),
+                href: pluginManager.getConfigurationPageUrl('AutoOrganizeLog'),
                 name: 'Activity Log'
             },
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeTv'),
+                href: pluginManager.getConfigurationPageUrl('AutoOrganizeTv'),
                 name: 'TV'
             },
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeMovie'),
+                href: pluginManager.getConfigurationPageUrl('AutoOrganizeMovie'),
                 name: 'Movie'
             },
             {
-                href: Dashboard.getConfigurationPageUrl('AutoOrganizeSmart'),
+                href: pluginManager.getConfigurationPageUrl('AutoOrganizeSmart'),
                 name: 'Smart Matches'
             }];
     }
 
-    return function (view, params) {
+    function onServerEvent(e, apiClient, data) {
 
-        pageGlobal = view;
+        let refresh = true;
+
+        if (e.type === 'ScheduledTasksInfo') {
+            // todo filte 
+            
+        } else {
+
+            refresh = true;
+        }
+
+        if (refresh) {
+            this.itemsContainer.notifyRefreshNeeded(true);
+        }
+    }
+
+    function AutoOrganizeView(view, params) {
+
+        this.enableAlphaNumericShortcuts = false;
+
+        ListPage.apply(this, arguments);
+
+        const instance = this;
 
         view.querySelector('.btnClearLog').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationLog().then(function () {
-                query.StartIndex = 0;
-                reloadItems(view, true);
-            }, Dashboard.processErrorResponse);
+            instance.getApiClient().clearOrganizationLog().then(function () {
+
+                instance.itemsContainer.notifyRefreshNeeded(true);
+
+            }, formHelper.handleErrorResponse);
         });
 
         view.querySelector('.btnClearCompleted').addEventListener('click', function () {
 
-            ApiClient.clearOrganizationCompletedLog().then(function () {
-                query.StartIndex = 0;
-                reloadItems(view, true);
-            }, Dashboard.processErrorResponse);
+            instance.getApiClient().clearOrganizationCompletedLog().then(function () {
+
+                instance.itemsContainer.notifyRefreshNeeded(true);
+
+            }, formHelper.handleErrorResponse);
         });
 
-        view.addEventListener('viewshow', function (e) {
+        this.boundOnServerEvent = onServerEvent.bind(this);
+    }
 
-            mainTabsManager.setTabs(this, 0, getTabs);
+    Object.assign(AutoOrganizeView.prototype, ListPage.prototype);
 
-            reloadItems(view, true);
+    AutoOrganizeView.prototype.onResume = function (options) {
 
-            events.on(serverNotifications, 'AutoOrganize_LogReset', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemUpdated', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
-            events.on(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
-            events.on(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
+        ListPage.prototype.onResume.apply(this, arguments);
 
-            // on here
-            taskButton({
-                mode: 'on',
-                panel: view.querySelector('.organizeTaskPanel'),
-                progressElem: view.querySelector('.organizeProgress'),
-                taskKey: 'AutoOrganize',
-                button: view.querySelector('.btnOrganize')
-            });
-        });
+        var view = this.view;
 
-        view.addEventListener('viewhide', function (e) {
+        mainTabsManager.setTabs(view, 0, getTabs);
 
-            currentResult = null;
+        events.on(serverNotifications, 'AutoOrganize_LogReset', this.boundOnServerEvent);
+        events.on(serverNotifications, 'AutoOrganize_ItemUpdated', this.boundOnServerEvent);
+        events.on(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
+        events.on(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
+        events.on(serverNotifications, 'ScheduledTasksInfo', this.boundOnServerEvent);
 
-            events.off(serverNotifications, 'AutoOrganize_LogReset', onServerEvent);
-            events.off(serverNotifications, 'AutoOrganize_ItemUpdated', onServerEvent);
-            events.off(serverNotifications, 'AutoOrganize_ItemRemoved', onServerEvent);
-            events.off(serverNotifications, 'AutoOrganize_ItemAdded', onServerEvent);
-            events.off(serverNotifications, 'ScheduledTaskEnded', onServerEvent);
-
-            // off here
-            taskButton({
-                mode: 'off',
-                panel: view.querySelector('.organizeTaskPanel'),
-                progressElem: view.querySelector('.organizeProgress'),
-                taskKey: 'AutoOrganize',
-                button: view.querySelector('.btnOrganize')
-            });
+        // on here
+        taskButton({
+            mode: 'on',
+            panel: view.querySelector('.btnOrganize'),
+            progressElem: view.querySelector('.organizeProgress'),
+            taskKey: 'AutoOrganize',
+            button: view.querySelector('.btnOrganize')
         });
     };
+
+    AutoOrganizeView.prototype.onPause = function () {
+
+        ListPage.prototype.onPause.apply(this, arguments);
+
+        var view = this.view;
+
+        events.off(serverNotifications, 'AutoOrganize_LogReset', this.boundOnServerEvent);
+        events.off(serverNotifications, 'AutoOrganize_ItemUpdated', this.boundOnServerEvent);
+        events.off(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
+        events.off(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
+        events.off(serverNotifications, 'ScheduledTasksInfo', this.boundOnServerEvent);
+
+        // off here
+        taskButton({
+            mode: 'off',
+            panel: view.querySelector('.organizeTaskPanel'),
+            progressElem: view.querySelector('.organizeProgress'),
+            taskKey: 'AutoOrganize',
+            button: view.querySelector('.btnOrganize')
+        });
+    };
+
+    AutoOrganizeView.prototype.supportsAlphaPicker = function () {
+
+        return false;
+    };
+
+    AutoOrganizeView.prototype.getItemTypes = function () {
+
+        return ['AutoOrganizeEntry'];
+    };
+
+    AutoOrganizeView.prototype.getEmptyListMessage = function () {
+
+        return Promise.resolve('');
+    };
+
+    AutoOrganizeView.prototype.setTitle = function () {
+
+        // handled by appheader
+    };
+
+    AutoOrganizeView.prototype.getItem = function () {
+
+        return Promise.resolve(null);
+    };
+
+    AutoOrganizeView.prototype.getItems = function (query) {
+
+        return this.getApiClient().getFileOrganizationResults(query);
+    };
+
+    AutoOrganizeView.prototype.getNameSortOption = function (itemType) {
+
+        return null;
+    };
+
+    AutoOrganizeView.prototype.getSettingsKey = function () {
+
+        return 'autoorganizelog';
+    };
+
+    AutoOrganizeView.prototype.supportsViewType = function (viewType) {
+
+        switch (viewType) {
+
+            // datagrid can be enabled once the issues with the fixed position header have been worked out
+            case 'datagrid':
+                return false;
+            case 'list':
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    AutoOrganizeView.prototype.getBaseListRendererOptions = function () {
+
+        let options = ListPage.prototype.getBaseListRendererOptions.apply(this, arguments);
+
+        options.draggable = false;
+
+        options.action = layoutManager.tv ? 'none' : 'edit';
+
+        options.textLinks = false;
+
+        return options;
+    };
+
+    AutoOrganizeView.prototype.getListViewOptions = function (items, settings) {
+
+        let options = ListPage.prototype.getListViewOptions.apply(this, arguments);
+
+        options.fields.push('ListViewTargetPath');
+        options.fields.push('DateOrganized');
+        options.fields.push('ListViewStatusMessage');
+
+        return options;
+    };
+
+    AutoOrganizeView.prototype.getViewSettingDefaults = function () {
+
+        let viewSettings = ListPage.prototype.getViewSettingDefaults.apply(this, arguments);
+
+        viewSettings.imageType = 'list';
+
+        return viewSettings;
+    };
+
+    return AutoOrganizeView;
 });

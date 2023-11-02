@@ -75,7 +75,7 @@ namespace Emby.AutoOrganize.Data
                             statement.TryBind("@FileLength", result.FileSize);
                             statement.TryBind("@OrganizationDate", result.Date.ToDateTimeParamValue());
                             statement.TryBind("@Status", result.Status.ToString());
-                            statement.TryBind("@OrganizationType", result.Type.ToString());
+                            statement.TryBind("@OrganizationType", result.OrganizerType.ToString());
                             statement.TryBind("@StatusMessage", result.StatusMessage);
                             statement.TryBind("@ExtractedName", result.ExtractedName);
                             statement.TryBind("@ExtractedYear", result.ExtractedYear);
@@ -254,7 +254,7 @@ namespace Emby.AutoOrganize.Data
             result.Status = (FileSortingStatus)Enum.Parse(typeof(FileSortingStatus), reader.GetString(index), true);
 
             index++;
-            result.Type = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
+            result.OrganizerType = (FileOrganizerType)Enum.Parse(typeof(FileOrganizerType), reader.GetString(index), true);
 
             index++;
             if (!reader.IsDBNull(index))

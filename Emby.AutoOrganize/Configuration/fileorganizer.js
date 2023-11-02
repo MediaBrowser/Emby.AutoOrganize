@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'loading', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller'], function (dialogHelper, loading) {
+﻿define(['dialogHelper', 'loading', 'pluginManager', 'emby-checkbox', 'emby-input', 'emby-button', 'emby-select', 'paper-icon-button-light', 'formDialogStyle', 'emby-scroller', 'emby-dialogclosebutton'], function (dialogHelper, loading, pluginManager) {
     'use strict';
 
     ApiClient.getFileOrganizationResults = function (options) {
@@ -367,7 +367,7 @@
                 existingMediasHtml = null;
 
                 var xhr = new XMLHttpRequest();
-                xhr.open('GET', Dashboard.getConfigurationResourceUrl('FileOrganizerHtml'), true);
+                xhr.open('GET', pluginManager.getConfigurationResourceUrl('FileOrganizerHtml'), true);
 
                 xhr.onload = function (e) {
 
@@ -399,11 +399,6 @@
                         } else {
                             reject();
                         }
-                    });
-
-                    dlg.querySelector('.btnCancel').addEventListener('click', function (e) {
-
-                        dialogHelper.close(dlg);
                     });
 
                     dlg.querySelector('form').addEventListener('submit', function (e) {

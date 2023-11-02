@@ -194,7 +194,7 @@ namespace Emby.AutoOrganize.Data
                 }
                 else
                 {
-                    bindParam.Bind(value.AsSpan());
+                    bindParam.Bind(value);
                 }
             }
             else
@@ -212,7 +212,7 @@ namespace Emby.AutoOrganize.Data
             }
             else
             {
-                bindParam.Bind(value.AsSpan());
+                bindParam.Bind(value);
             }
         }
 

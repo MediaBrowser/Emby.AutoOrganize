@@ -81,13 +81,15 @@ namespace Emby.AutoOrganize.Model
         /// Gets or sets the type.
         /// </summary>
         /// <value>The type.</value>
-        public FileOrganizerType Type { get; set; }
+        public FileOrganizerType OrganizerType { get; set; }
+
+        public string Type { get; set; } = "AutoOrganizeEntry";
 
         /// <summary>
         /// Gets or sets the duplicate paths.
         /// </summary>
         /// <value>The duplicate paths.</value>
-        public List<string> DuplicatePaths { get; set; }
+        public List<string> DuplicatePaths { get; set; } = new List<string>();
 
         /// <summary>
         /// Gets or sets the size of the file.
@@ -100,10 +102,5 @@ namespace Emby.AutoOrganize.Model
         /// </summary>
         /// <remarks>Runtime property not persisted to the store.</remarks>
         public bool IsInProgress { get; set; }
-
-        public FileOrganizationResult()
-        {
-            DuplicatePaths = new List<string>();
-        }
     }
 }

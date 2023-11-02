@@ -157,7 +157,7 @@ namespace Emby.AutoOrganize.Core
             }
 
             FileOrganizationResult organizeResult;
-            switch (result.Type)
+            switch (result.OrganizerType)
             {
                 case FileOrganizerType.Episode:
                     var episodeOrganizer = new EpisodeFileOrganizer(this, _config, _fileSystem, _logger, _libraryManager,
@@ -175,7 +175,7 @@ namespace Emby.AutoOrganize.Core
                         .ConfigureAwait(false);
                     break;
                 default:
-                    throw new OrganizationException("No organizer exist for the type " + result.Type);
+                    throw new OrganizationException("No organizer exist for the type " + result.OrganizerType);
             }
 
             if (organizeResult.Status != FileSortingStatus.Success)

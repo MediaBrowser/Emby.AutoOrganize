@@ -53,7 +53,7 @@ namespace Emby.AutoOrganize.Core
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
-                Type = FileOrganizerType.Unknown,
+                OrganizerType = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
 
@@ -95,7 +95,7 @@ namespace Emby.AutoOrganize.Core
                 // Handle previous result
                 var previousResult = _organizationService.GetResultBySourcePath(path);
 
-                if ((previousResult != null && result.Type == FileOrganizerType.Unknown) || (previousResult?.Status == result.Status &&
+                if ((previousResult != null && result.OrganizerType == FileOrganizerType.Unknown) || (previousResult?.Status == result.Status &&
                                                                                              previousResult?.StatusMessage == result.StatusMessage &&
                                                                                              result.Status != FileSortingStatus.Success))
                 {
@@ -187,7 +187,7 @@ namespace Emby.AutoOrganize.Core
                 }
 
                 // We manually set the media as Movie 
-                result.Type = CurrentFileOrganizerType;
+                result.OrganizerType = CurrentFileOrganizerType;
 
                 OrganizeMovie(result.OriginalPath,
                    movie,
@@ -238,7 +238,7 @@ namespace Emby.AutoOrganize.Core
 
             // We detected an Movie (either auto-detect or in library)
             // We have all the chance that the media type is an Movie
-            result.Type = CurrentFileOrganizerType;
+            result.OrganizerType = CurrentFileOrganizerType;
 
             OrganizeMovie(sourcePath,
                movie,

@@ -60,7 +60,7 @@ namespace Emby.AutoOrganize.Core
                 Date = DateTime.UtcNow,
                 OriginalPath = path,
                 OriginalFileName = Path.GetFileName(path),
-                Type = FileOrganizerType.Unknown,
+                OrganizerType = FileOrganizerType.Unknown,
                 FileSize = _fileSystem.GetFileInfo(path).Length
             };
 
@@ -142,7 +142,7 @@ namespace Emby.AutoOrganize.Core
                         // We detected an airdate or (an season number and an episode number)
                         // We have all the chance that the media type is an Episode
                         // if an earlier result exist with an different type, we update it
-                        result.Type = CurrentFileOrganizerType;
+                        result.OrganizerType = CurrentFileOrganizerType;
 
                         var endingEpisodeNumber = episodeInfo.EndingEpsiodeNumber;
 
@@ -179,7 +179,7 @@ namespace Emby.AutoOrganize.Core
                 // Handle previous result
                 var previousResult = _organizationService.GetResultBySourcePath(path);
 
-                if ((previousResult != null && result.Type == FileOrganizerType.Unknown) || (previousResult?.Status == result.Status &&
+                if ((previousResult != null && result.OrganizerType == FileOrganizerType.Unknown) || (previousResult?.Status == result.Status &&
                                                                                              previousResult?.StatusMessage == result.StatusMessage &&
                                                                                              result.Status != FileSortingStatus.Success))
                 {
@@ -318,7 +318,7 @@ namespace Emby.AutoOrganize.Core
                 }
 
                 // We manually set the media as Series 
-                result.Type = CurrentFileOrganizerType;
+                result.OrganizerType = CurrentFileOrganizerType;
 
                 await OrganizeEpisode(result.OriginalPath,
                    series,
