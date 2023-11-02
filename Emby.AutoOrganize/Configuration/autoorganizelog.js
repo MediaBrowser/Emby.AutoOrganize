@@ -614,6 +614,9 @@
         options.fields.push('DateOrganized');
         options.fields.push('ListViewStatusMessage');
 
+        options.roundImage = true;
+        options.imageSize = 'smaller';
+
         return options;
     };
 
