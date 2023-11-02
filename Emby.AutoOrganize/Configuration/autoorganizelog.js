@@ -188,6 +188,17 @@
         return false;
     };
 
+    AutoOrganizeEntryController.prototype.getEditCommand = function (items) {
+
+        let cmd = BaseItemController.prototype.getEditCommand.apply(this, arguments);
+
+        cmd.name = globalize.translate('Organize');
+        cmd.icon = 'drive_file_move';
+        cmd.primaryCommand = true
+
+        return cmd;
+    };
+
     AutoOrganizeEntryController.prototype.getEditCommandText = function (item) {
 
         return globalize.translate('Organize');
@@ -231,8 +242,16 @@
 
         fields.push({
             id: 'Name',
-            name: globalize.translate('Original Path'),
+            name: globalize.translate('Path'),
             size: 80,
+            sortBy: null,
+            viewTypes: 'datagrid'
+        });
+
+        fields.push({
+            id: 'OriginalFileName',
+            name: globalize.translate('FileName'),
+            size: 40,
             sortBy: null,
             defaultVisible: '*'
         });
@@ -272,6 +291,50 @@
         });
 
         return fields;
+    };
+
+    AutoOrganizeEntryController.prototype.getCommands = function (options) {
+        let commands = BaseItemController.prototype.getCommands.apply(this, arguments);
+
+        let items = options.items;
+
+        if (items.length === 1) {
+
+            if (items[0].Status !== 'Success') {
+                commands.push({
+                    name: globalize.translate('View Error Information'),
+                    id: 'viewerrorinfo',
+                    icon: 'error'
+                });
+            }
+        }
+
+        return commands;
+    };
+
+    function showErrorInfoForEntry(item) {
+
+        require(['alert']).then(function (responses) {
+
+            return responses[0]({
+
+                title: item.OriginalFileName,
+                text: item.StatusMessage
+
+            });
+        });
+        return Promise.resolve();
+    }
+
+    AutoOrganizeEntryController.prototype.executeCommand = function (command, items, options) {
+
+        switch (command) {
+
+            case 'viewerrorinfo':
+                return showErrorInfoForEntry(items[0]);
+            default:
+                return BaseItemController.prototype.executeCommand.apply(this, arguments);
+        }
     };
 
     AutoOrganizeEntryController.prototype.deleteItemsInternal = function (options) {
@@ -320,33 +383,25 @@
         });
     };
 
-    function getColor(item) {
-
-        if (item.Status === 'Failure') {
-            return 'color:#cc0000';
-        }
-        if (item.Status === 'Success') {
-            return 'color:green';
-        }
-
-        return null;
-    }
-
     function getStatusDisplay(item) {
 
         var status = item.Status;
+        let classes = [];
+        let styles = [];
 
         if (status === 'SkippedExisting') {
             status = 'Skipped';
         }
         else if (status === 'Failure') {
             status = 'Failed';
+            styles.push('color:red');
         }
         if (status === 'Success') {
             status = 'Success';
+            classes.push('color-accent');
         }
 
-        return '<span style="' + getColor(item) + ';">' + status + '</span>';
+        return '<span class="' + classes.join(' ') + '" style="' + styles.join(';') + '">' + status + '</span>';
     }
 
     AutoOrganizeEntryController.prototype.resolveField = function (item, field) {
@@ -397,7 +452,7 @@
 
         if (e.type === 'ScheduledTasksInfo') {
             // todo filte 
-            
+
         } else {
 
             refresh = true;
@@ -529,9 +584,7 @@
 
         switch (viewType) {
 
-            // datagrid can be enabled once the issues with the fixed position header have been worked out
             case 'datagrid':
-                return false;
             case 'list':
                 return true;
             default:
@@ -543,7 +596,9 @@
 
         let options = ListPage.prototype.getBaseListRendererOptions.apply(this, arguments);
 
-        options.draggable = false;
+        options.draggable = true;
+        options.draggableXActions = true;
+        options.draggableXY = false;
 
         options.action = layoutManager.tv ? 'none' : 'edit';
 
