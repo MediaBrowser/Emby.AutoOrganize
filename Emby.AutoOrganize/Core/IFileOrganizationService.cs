@@ -86,7 +86,7 @@ namespace Emby.AutoOrganize.Core
         /// <param name="result">The result.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Task.</returns>
-        void SaveResult(FileOrganizationResult result, CancellationToken cancellationToken);
+        void SaveResult(FileOrganizationResult result, bool isNew, CancellationToken cancellationToken);
 
         /// <summary>
         /// Saves the result.

@@ -18,6 +18,24 @@
         });
     };
 
+    function onApiCommandCompleted(response) {
+
+        const obj = this;
+        const instance = obj.instance;
+        const eventName = obj.eventName;
+
+        events.trigger(instance, 'message', [{
+
+            MessageType: eventName,
+            Data: {
+                IsLocalEvent: true
+            }
+
+        }]);
+
+        return response;
+    }
+
     ApiClient.prototype.deleteOriginalFileFromOrganizationResult = function (id) {
 
         var url = this.getUrl("Library/FileOrganizations/" + id + "/File");
@@ -25,7 +43,11 @@
         return this.ajax({
             type: "DELETE",
             url: url
-        });
+
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_ItemRemoved'
+        }));
     };
 
     ApiClient.prototype.clearOrganizationLog = function () {
@@ -35,7 +57,10 @@
         return this.ajax({
             type: "DELETE",
             url: url
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_LogReset'
+        }));
     };
 
     ApiClient.prototype.clearOrganizationCompletedLog = function () {
@@ -45,7 +70,10 @@
         return this.ajax({
             type: "DELETE",
             url: url
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_LogReset'
+        }));
     };
 
     ApiClient.prototype.performOrganization = function (id) {
@@ -55,7 +83,10 @@
         return this.ajax({
             type: "POST",
             url: url
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_ItemUpdated'
+        }));
     };
 
     ApiClient.prototype.performEpisodeOrganization = function (id, options) {
@@ -67,7 +98,10 @@
             url: url,
             data: JSON.stringify(options),
             contentType: 'application/json'
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_ItemUpdated'
+        }));
     };
 
     ApiClient.prototype.performMovieOrganization = function (id, options) {
@@ -79,7 +113,10 @@
             url: url,
             data: JSON.stringify(options),
             contentType: 'application/json'
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_ItemUpdated'
+        }));
     };
 
     ApiClient.prototype.getSmartMatchInfos = function (options) {
@@ -109,7 +146,10 @@
             url: url,
             data: JSON.stringify(postData),
             contentType: "application/json"
-        });
+        }).then(onApiCommandCompleted.bind({
+            instance: this,
+            eventName: 'AutoOrganize_ItemRemoved'
+        }));
     };
 
     function AutoOrganizeEntryController() {
@@ -448,19 +488,15 @@
 
     function onServerEvent(e, apiClient, data) {
 
-        let refresh = true;
+        var isLocalEvent = data && data.IsLocalEvent;
 
-        if (e.type === 'ScheduledTasksInfo') {
-            // todo filte 
+        this.itemsContainer.notifyRefreshNeeded(isLocalEvent);
+    }
 
-        } else {
+    function clearEntries(e) {
 
-            refresh = true;
-        }
-
-        if (refresh) {
-            this.itemsContainer.notifyRefreshNeeded(true);
-        }
+        let instance = this;
+        instance.getApiClient().clearOrganizationLog().catch(formHelper.handleErrorResponse);
     }
 
     function AutoOrganizeView(view, params) {
@@ -471,23 +507,7 @@
 
         const instance = this;
 
-        view.querySelector('.btnClearLog').addEventListener('click', function () {
-
-            instance.getApiClient().clearOrganizationLog().then(function () {
-
-                instance.itemsContainer.notifyRefreshNeeded(true);
-
-            }, formHelper.handleErrorResponse);
-        });
-
-        view.querySelector('.btnClearCompleted').addEventListener('click', function () {
-
-            instance.getApiClient().clearOrganizationCompletedLog().then(function () {
-
-                instance.itemsContainer.notifyRefreshNeeded(true);
-
-            }, formHelper.handleErrorResponse);
-        });
+        view.querySelector('.btnClearLog').addEventListener('click', clearEntries.bind(this));
 
         this.boundOnServerEvent = onServerEvent.bind(this);
     }
@@ -506,15 +526,18 @@
         events.on(serverNotifications, 'AutoOrganize_ItemUpdated', this.boundOnServerEvent);
         events.on(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
         events.on(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
-        events.on(serverNotifications, 'ScheduledTasksInfo', this.boundOnServerEvent);
 
+        const instance = this;
         // on here
         taskButton({
             mode: 'on',
             panel: view.querySelector('.btnOrganize'),
             progressElem: view.querySelector('.organizeProgress'),
             taskKey: 'AutoOrganize',
-            button: view.querySelector('.btnOrganize')
+            button: view.querySelector('.btnOrganize'),
+            onStatusChange: function () {
+                instance.itemsContainer.notifyRefreshNeeded(true);
+            }
         });
     };
 
@@ -528,7 +551,6 @@
         events.off(serverNotifications, 'AutoOrganize_ItemUpdated', this.boundOnServerEvent);
         events.off(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
         events.off(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
-        events.off(serverNotifications, 'ScheduledTasksInfo', this.boundOnServerEvent);
 
         // off here
         taskButton({

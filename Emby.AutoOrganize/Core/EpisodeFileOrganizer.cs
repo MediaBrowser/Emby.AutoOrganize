@@ -200,7 +200,7 @@ namespace Emby.AutoOrganize.Core
                 _logger.ErrorException("Error organizing file", ex);
             }
 
-            _organizationService.SaveResult(result, CancellationToken.None);
+            _organizationService.SaveResult(result, false, CancellationToken.None);
 
             return result;
         }
@@ -331,7 +331,7 @@ namespace Emby.AutoOrganize.Core
                    result,
                    cancellationToken).ConfigureAwait(false);
 
-                _organizationService.SaveResult(result, CancellationToken.None);
+                _organizationService.SaveResult(result, false, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -446,7 +446,7 @@ namespace Emby.AutoOrganize.Core
 
             if (isNew)
             {
-                _organizationService.SaveResult(result, cancellationToken);
+                _organizationService.SaveResult(result, true, cancellationToken);
             }
 
             if (!_organizationService.AddToInProgressList(result, isNew))

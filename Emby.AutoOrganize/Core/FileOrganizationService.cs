@@ -53,7 +53,7 @@ namespace Emby.AutoOrganize.Core
             _taskManager.CancelIfRunningAndQueue<OrganizerScheduledTask>();
         }
 
-        public void SaveResult(FileOrganizationResult result, CancellationToken cancellationToken)
+        public void SaveResult(FileOrganizationResult result, bool isNewItem, CancellationToken cancellationToken)
         {
             if (result == null || string.IsNullOrEmpty(result.OriginalPath))
             {
@@ -63,6 +63,12 @@ namespace Emby.AutoOrganize.Core
             result.Id = result.OriginalPath.GetMD5().ToString("N");
 
             _repo.SaveResult(result, cancellationToken);
+
+            // AddToInProgressList will trigger an event when it's new
+            if (!isNewItem)
+            {
+                EventHelper.FireEventIfNotNull(ItemUpdated, this, new GenericEventArgs<FileOrganizationResult>(result), _logger);
+            }
         }
 
         public void SaveResult(SmartMatchResult result, CancellationToken cancellationToken)
