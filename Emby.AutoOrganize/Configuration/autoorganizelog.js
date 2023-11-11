@@ -238,11 +238,6 @@
 
         return cmd;
     };
-
-    AutoOrganizeEntryController.prototype.getEditCommandText = function (item) {
-
-        return globalize.translate('Organize');
-    };
     AutoOrganizeEntryController.prototype.isDeletePrimaryCommand = function (itemType) {
 
         return true;
@@ -458,7 +453,7 @@
                     return val ? datetime.toLocaleString(new Date(Date.parse(val))) : null;
                 }
             case 'ListViewStatusMessage':
-                return getStatusDisplay(item) + ': ' + item.StatusMessage;
+                return getStatusDisplay(item) + (item.StatusMessage ? (': ' + item.StatusMessage) : '');
             default:
                 return BaseItemController.prototype.resolveField.apply(this, arguments);
         }
