@@ -112,7 +112,6 @@
     }
 
     function initBaseForm(context, item) {
-        context.querySelector('.inputFile').innerHTML = item.OriginalFileName;
 
         context.querySelector('#hfResultId').value = item.Id;
 
@@ -389,6 +388,7 @@
                     dlg.innerHTML = html;
 
                     dlg.querySelector('.formDialogHeaderTitle').innerHTML = 'Organize';
+                    dlg.querySelector('.inputFile').innerHTML = item.OriginalFileName;
 
                     dialogHelper.open(dlg);
 
