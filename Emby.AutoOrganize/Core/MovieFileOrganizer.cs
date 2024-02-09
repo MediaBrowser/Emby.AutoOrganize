@@ -439,7 +439,7 @@ namespace Emby.AutoOrganize.Core
             result.ExtractedName = movieName;
             result.ExtractedYear = movieYear;
 
-            var movie = _libraryManager.GetItemList(new InternalItemsQuery
+            var movie = EpisodeFileOrganizer.Search(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { typeof(Movie).Name },
                 Recursive = true,
@@ -447,7 +447,7 @@ namespace Emby.AutoOrganize.Core
                 AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
                 SearchTerm = movieName,
                 Years = movieYear.HasValue ? new[] { movieYear.Value } : Array.Empty<int>()
-            })
+            }, _libraryManager)
                 .Cast<Movie>()
                 // Check For the right extension (to handle quality upgrade)
                 .FirstOrDefault(m => Path.GetExtension(m.Path) == Path.GetExtension(result.OriginalPath));

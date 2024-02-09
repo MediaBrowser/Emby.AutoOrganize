@@ -813,6 +813,29 @@ namespace Emby.AutoOrganize.Core
             return season;
         }
 
+        public static BaseItem[] Search(InternalItemsQuery query, ILibraryManager libraryManager)
+        {
+            var items = libraryManager.GetItemList(query);
+
+            if (items.Length > 0)
+            {
+                return items;
+            }
+
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+            {
+                var newSearchTerm = query.SearchTerm.Replace('.', ' ').Trim();
+
+                if (!string.Equals(newSearchTerm, query.SearchTerm, StringComparison.OrdinalIgnoreCase))
+                {
+                    query.SearchTerm = newSearchTerm;
+                    items = libraryManager.GetItemList(query);
+                }
+            }
+
+            return items;
+        }
+
         private Series GetMatchingSeries(string seriesName, int? seriesYear, BaseItem targetFolder, FileOrganizationResult result)
         {
             if (result != null)
@@ -821,15 +844,17 @@ namespace Emby.AutoOrganize.Core
                 result.ExtractedYear = seriesYear;
             }
 
-            var series = _libraryManager.GetItemList(new InternalItemsQuery
+            var series = Search(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { typeof(Series).Name },
                 Recursive = true,
                 DtoOptions = new DtoOptions(true),
                 AncestorIds = targetFolder == null ? Array.Empty<long>() : new[] { targetFolder.InternalId },
                 SearchTerm = seriesName,
-                Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>()
-            })
+                Years = seriesYear.HasValue ? new[] { seriesYear.Value } : Array.Empty<int>(),
+                Limit = 1
+
+            }, _libraryManager)
                 .Cast<Series>()
                 .FirstOrDefault();
 
