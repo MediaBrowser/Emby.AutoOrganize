@@ -891,7 +891,11 @@ namespace Emby.AutoOrganize.Core
 
             if (seriesYear.HasValue)
             {
-                seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
+                // sometimes the series year will already be in the name
+                if (!seriesFullName.EndsWith("(" + seriesYear.Value.ToString(CultureInfo.InvariantCulture) + ")"))
+                {
+                    seriesFullName = string.Format("{0} ({1})", seriesFullName, seriesYear);
+                }
             }
 
             var seasonFolderName = options.SeriesFolderPattern.
