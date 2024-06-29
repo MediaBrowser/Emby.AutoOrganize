@@ -1,4 +1,4 @@
-﻿define(['ListPage', 'layoutManager', 'ApiClient', 'itemManager', 'BaseItemController', 'globalize', 'connectionManager', 'datetime', 'pluginManager', 'loading', 'formHelper', 'mainTabsManager', 'taskButton', 'events', 'serverNotifications'], function (ListPage, layoutManager, ApiClient, itemManager, BaseItemController, globalize, connectionManager, datetime, pluginManager, loading, formHelper, mainTabsManager, taskButton, events, serverNotifications) {
+﻿define(['ListPage', 'layoutManager', 'ApiClient', 'itemManager', 'BaseItemController', 'globalize', 'connectionManager', 'datetime', 'pluginManager', 'loading', 'formHelper', 'mainTabsManager', 'taskButton', 'events', 'serverNotifications'], function (ListPage, layoutManager, ApiClient, itemManager, BaseItemController, globalize, connectionManager, datetime, pluginManager, loading, formHelper, mainTabsManager, TaskButton, events, serverNotifications) {
     'use strict';
 
     ApiClient.prototype.getFileOrganizationResults = function (options) {
@@ -20,9 +20,9 @@
 
     function onApiCommandCompleted(response) {
 
-        const obj = this;
-        const instance = obj.instance;
-        const eventName = obj.eventName;
+        var obj = this;
+        var instance = obj.instance;
+        var eventName = obj.eventName;
 
         events.trigger(instance, 'message', [{
 
@@ -374,7 +374,7 @@
 
     AutoOrganizeEntryController.prototype.deleteItemsInternal = function (options) {
 
-        const apiClient = connectionManager.getApiClient(options.items[0]);
+        var apiClient = connectionManager.getApiClient(options.items[0]);
         let promises = options.items.map(function (item) {
             return apiClient.deleteOriginalFileFromOrganizationResult(item.Id);
         });
@@ -500,11 +500,21 @@
 
         ListPage.apply(this, arguments);
 
-        const instance = this;
-
         view.querySelector('.btnClearLog').addEventListener('click', clearEntries.bind(this));
 
         this.boundOnServerEvent = onServerEvent.bind(this);
+
+        var instance = this;
+
+        this.taskButton = new TaskButton({
+            panel: view.querySelector('.btnOrganize'),
+            progressElem: view.querySelector('.organizeProgress'),
+            taskKey: 'AutoOrganize',
+            button: view.querySelector('.btnOrganize'),
+            onStatusChange: function () {
+                instance.itemsContainer.notifyRefreshNeeded(true);
+            }
+        });
     }
 
     Object.assign(AutoOrganizeView.prototype, ListPage.prototype);
@@ -522,18 +532,9 @@
         events.on(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
         events.on(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
 
-        const instance = this;
-        // on here
-        taskButton({
-            mode: 'on',
-            panel: view.querySelector('.btnOrganize'),
-            progressElem: view.querySelector('.organizeProgress'),
-            taskKey: 'AutoOrganize',
-            button: view.querySelector('.btnOrganize'),
-            onStatusChange: function () {
-                instance.itemsContainer.notifyRefreshNeeded(true);
-            }
-        });
+        if (this.taskButton) {
+            this.taskButton.resume({});
+        }
     };
 
     AutoOrganizeView.prototype.onPause = function () {
@@ -547,14 +548,19 @@
         events.off(serverNotifications, 'AutoOrganize_ItemRemoved', this.boundOnServerEvent);
         events.off(serverNotifications, 'AutoOrganize_ItemAdded', this.boundOnServerEvent);
 
-        // off here
-        taskButton({
-            mode: 'off',
-            panel: view.querySelector('.organizeTaskPanel'),
-            progressElem: view.querySelector('.organizeProgress'),
-            taskKey: 'AutoOrganize',
-            button: view.querySelector('.btnOrganize')
-        });
+        if (this.taskButton) {
+            this.taskButton.pause();
+        }
+    };
+
+    AutoOrganizeView.prototype.destroy = function () {
+
+        ListPage.prototype.destroy.apply(this, arguments);
+
+        if (this.taskButton) {
+            this.taskButton.destroy();
+            this.taskButton = null;
+        }
     };
 
     AutoOrganizeView.prototype.supportsAlphaPicker = function () {
