@@ -386,6 +386,10 @@
 
         var item = items[0];
 
+        if (item.Status === 'Success') {
+            return Promise.resolve();
+        }
+
         if (!item.TargetPath) {
             return require([pluginManager.getConfigurationResourceUrl('FileOrganizerJs')]).then(function (responses) {
 
