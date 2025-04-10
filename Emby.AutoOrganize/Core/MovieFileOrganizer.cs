@@ -322,6 +322,8 @@ namespace Emby.AutoOrganize.Core
             }
             catch (Exception ex)
             {
+                _logger.ErrorException("Error organizing file", ex);
+
                 result.Status = FileSortingStatus.Failure;
                 result.StatusMessage = ex.Message;
                 _logger.Warn(ex.Message);
