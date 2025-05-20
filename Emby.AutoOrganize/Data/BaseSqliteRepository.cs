@@ -39,7 +39,6 @@ namespace Emby.AutoOrganize.Data
 
         private static bool _versionLogged;
 
-        private string _defaultWal;
         protected IDatabaseConnection _connection;
 
         protected virtual bool EnableSingleConnection
@@ -79,14 +78,7 @@ namespace Emby.AutoOrganize.Data
                     connectionFlags |= ConnectionFlags.ReadWrite;
                 }
 
-                if (EnableSingleConnection)
-                {
-                    connectionFlags |= ConnectionFlags.PrivateCache;
-                }
-                else
-                {
-                    connectionFlags |= ConnectionFlags.SharedCached;
-                }
+                connectionFlags |= ConnectionFlags.PrivateCache;
 
                 connectionFlags |= ConnectionFlags.NoMutex;
 
@@ -94,20 +86,6 @@ namespace Emby.AutoOrganize.Data
 
                 try
                 {
-                    if (string.IsNullOrWhiteSpace(_defaultWal))
-                    {
-                        using (var statement = PrepareStatement(db, "PRAGMA journal_mode".AsSpan()))
-                        {
-                            foreach (var row in statement.ExecuteQuery())
-                            {
-                                _defaultWal = row.GetString(0);
-                                break;
-                            }
-                        }
-
-                        Logger.Info("Default journal_mode for {0} is {1}", DbFilePath, _defaultWal);
-                    }
-
                     var queries = new List<string>
                     {
                         //"PRAGMA cache size=-10000"
@@ -145,7 +123,10 @@ namespace Emby.AutoOrganize.Data
                     throw;
                 }
 
-                _connection = db;
+                if (!isReadOnly)
+                {
+                    _connection = db;
+                }
 
                 return db;
             }
