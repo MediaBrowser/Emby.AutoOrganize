@@ -362,7 +362,10 @@ namespace Emby.AutoOrganize.Core
 
                 if (series == null)
                 {
-                    var msg = string.Format("Unable to find series in library matching name {0}", seriesName);
+                    var msg = options.AutoDetectSeries ? 
+                        string.Format("Unable to find series in library matching name {0}.", seriesName) : 
+                        string.Format("Unable to find series in library matching name {0}. Manual organization is required due to new series creation being disabled.", seriesName);
+
                     result.Status = FileSortingStatus.Failure;
                     result.StatusMessage = msg;
                     _logger.Warn(msg);
