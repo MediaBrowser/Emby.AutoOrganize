@@ -235,6 +235,10 @@ namespace Emby.AutoOrganize.Core
                     return;
                 }
             }
+            else
+            {
+                _logger.Info("Found existing movie match in library. Source: {0}, Existing: {1}", sourcePath, movie.Path);
+            }
 
             // We detected an Movie (either auto-detect or in library)
             // We have all the chance that the media type is an Movie
