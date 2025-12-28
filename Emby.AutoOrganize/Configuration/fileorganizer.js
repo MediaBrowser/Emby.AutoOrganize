@@ -8,6 +8,54 @@
     var existingMediasHtml;
     var mediasLocationsCount = 0;
 
+    function onApiCommandCompleted(response) {
+
+        var obj = this;
+        var instance = obj.instance;
+        var eventName = obj.eventName;
+
+        events.trigger(instance, 'message', [{
+
+            MessageType: eventName,
+            Data: {
+                IsLocalEvent: true
+            }
+
+        }]);
+
+        return response;
+    }
+
+    function performEpisodeOrganization(apiClient, id, options) {
+
+        var url = apiClient.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
+
+        return apiClient.ajax({
+            type: "POST",
+            url: url,
+            data: JSON.stringify(options),
+            contentType: 'application/json'
+        }).then(onApiCommandCompleted.bind({
+            instance: apiClient,
+            eventName: 'AutoOrganize_ItemUpdated'
+        }));
+    }
+
+    function performMovieOrganization(apiClient, id, options) {
+
+        var url = apiClient.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
+
+        return apiClient.ajax({
+            type: "POST",
+            url: url,
+            data: JSON.stringify(options),
+            contentType: 'application/json'
+        }).then(onApiCommandCompleted.bind({
+            instance: apiClient,
+            eventName: 'AutoOrganize_ItemUpdated'
+        }));
+    }
+
     function onApiFailure(e) {
 
         loading.hide();
@@ -73,10 +121,10 @@
                             display: virtualFolder.Name + ': ' + virtualFolder.Locations[i]
                         };
 
-                        if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') || 
+                        if ((chosenType == 'Movie' && virtualFolder.CollectionType == 'movies') ||
                             (chosenType == 'Series' && virtualFolder.CollectionType == 'tvshows')) {
                             mediasLocations.push(location);
-                        } 
+                        }
                     }
                 }
 
@@ -154,7 +202,7 @@
                 TargetFolder: targetFolder
             };
 
-            ApiClient.performEpisodeOrganization(resultId, options).then(function () {
+            performEpisodeOrganization(ApiClient, resultId, options).then(function () {
 
                 loading.hide();
 
@@ -172,7 +220,7 @@
                 TargetFolder: targetFolder
             };
 
-            ApiClient.performMovieOrganization(resultId, options).then(function () {
+            performMovieOrganization(ApiClient, resultId, options).then(function () {
 
                 loading.hide();
 

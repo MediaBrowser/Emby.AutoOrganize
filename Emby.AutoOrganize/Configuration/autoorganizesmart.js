@@ -1,6 +1,36 @@
 ﻿define(['loading', 'mainTabsManager', 'listViewStyle'], function (loading, mainTabsManager) {
     'use strict';
 
+    function getSmartMatchInfos(apiClient, options) {
+
+        options = options || {};
+
+        var url = apiClient.getUrl("Library/FileOrganizations/SmartMatches", options);
+
+        return apiClient.ajax({
+            type: "GET",
+            url: url,
+            dataType: "json"
+        });
+    }
+
+    function deleteSmartMatchEntries(apiClient, entries) {
+
+        var url = apiClient.getUrl("Library/FileOrganizations/SmartMatches/Delete");
+
+        var postData = {
+            Entries: entries
+        };
+
+        return apiClient.ajax({
+
+            type: "POST",
+            url: url,
+            data: JSON.stringify(postData),
+            contentType: "application/json"
+        });
+    };
+
     var query = {
 
         StartIndex: 0,
@@ -26,7 +56,7 @@
 
         loading.show();
 
-        ApiClient.getSmartMatchInfos(query).then(function (infos) {
+        getSmartMatchInfos(ApiClient, query).then(function (infos) {
 
             currentResult = infos;
 
@@ -163,7 +193,7 @@
                         Value: info.MatchStrings[matchIndex]
                     }];
 
-                ApiClient.deleteSmartMatchEntries(entries).then(function () {
+                deleteSmartMatchEntries(ApiClient, entries).then(function () {
 
                     reloadList(view);
 

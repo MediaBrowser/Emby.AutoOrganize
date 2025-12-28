@@ -1,13 +1,13 @@
-﻿define(['ListPage', 'layoutManager', 'ApiClient', 'itemManager', 'BaseItemController', 'globalize', 'connectionManager', 'datetime', 'pluginManager', 'loading', 'formHelper', 'mainTabsManager', 'taskButton', 'events', 'serverNotifications'], function (ListPage, layoutManager, ApiClient, itemManager, BaseItemController, globalize, connectionManager, datetime, pluginManager, loading, formHelper, mainTabsManager, TaskButton, events, serverNotifications) {
+﻿define(['ListPage', 'layoutManager', 'itemManager', 'BaseItemController', 'globalize', 'connectionManager', 'datetime', 'pluginManager', 'loading', 'formHelper', 'mainTabsManager', 'taskButton', 'events', 'serverNotifications'], function (ListPage, layoutManager, itemManager, BaseItemController, globalize, connectionManager, datetime, pluginManager, loading, formHelper, mainTabsManager, TaskButton, events, serverNotifications) {
     'use strict';
 
-    ApiClient.prototype.getFileOrganizationResults = function (options) {
+    function getFileOrganizationResults(apiClient, options) {
 
-        var url = this.getUrl("Library/FileOrganization", options || {});
+        var url = apiClient.getUrl("Library/FileOrganization", options || {});
 
-        var serverId = this.serverId();
+        var serverId = apiClient.serverId();
 
-        return this.getJSON(url).then(function (result) {
+        return apiClient.getJSON(url).then(function (result) {
 
             var items = result.Items;
             for (var i = 0, length = items.length; i < length; i++) {
@@ -36,121 +36,45 @@
         return response;
     }
 
-    ApiClient.prototype.deleteOriginalFileFromOrganizationResult = function (id) {
+    function deleteOriginalFileFromOrganizationResult(apiClient, id) {
 
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/File");
+        var url = apiClient.getUrl("Library/FileOrganizations/" + id + "/File");
 
-        return this.ajax({
+        return apiClient.ajax({
             type: "DELETE",
             url: url
 
         }).then(onApiCommandCompleted.bind({
-            instance: this,
+            instance: apiClient,
             eventName: 'AutoOrganize_ItemRemoved'
         }));
-    };
+    }
 
-    ApiClient.prototype.clearOrganizationLog = function () {
+    function clearOrganizationLog(apiClient) {
 
-        var url = this.getUrl("Library/FileOrganizations");
+        var url = apiClient.getUrl("Library/FileOrganizations");
 
-        return this.ajax({
+        return apiClient.ajax({
             type: "DELETE",
             url: url
         }).then(onApiCommandCompleted.bind({
-            instance: this,
+            instance: apiClient,
             eventName: 'AutoOrganize_LogReset'
         }));
-    };
+    }
 
-    ApiClient.prototype.clearOrganizationCompletedLog = function () {
+    function performOrganization(apiClient, id) {
 
-        var url = this.getUrl("Library/FileOrganizations/Completed");
+        var url = apiClient.getUrl("Library/FileOrganizations/" + id + "/Organize");
 
-        return this.ajax({
-            type: "DELETE",
-            url: url
-        }).then(onApiCommandCompleted.bind({
-            instance: this,
-            eventName: 'AutoOrganize_LogReset'
-        }));
-    };
-
-    ApiClient.prototype.performOrganization = function (id) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Organize");
-
-        return this.ajax({
+        return apiClient.ajax({
             type: "POST",
             url: url
         }).then(onApiCommandCompleted.bind({
-            instance: this,
+            instance: apiClient,
             eventName: 'AutoOrganize_ItemUpdated'
         }));
-    };
-
-    ApiClient.prototype.performEpisodeOrganization = function (id, options) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Episode/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        }).then(onApiCommandCompleted.bind({
-            instance: this,
-            eventName: 'AutoOrganize_ItemUpdated'
-        }));
-    };
-
-    ApiClient.prototype.performMovieOrganization = function (id, options) {
-
-        var url = this.getUrl("Library/FileOrganizations/" + id + "/Movie/Organize");
-
-        return this.ajax({
-            type: "POST",
-            url: url,
-            data: JSON.stringify(options),
-            contentType: 'application/json'
-        }).then(onApiCommandCompleted.bind({
-            instance: this,
-            eventName: 'AutoOrganize_ItemUpdated'
-        }));
-    };
-
-    ApiClient.prototype.getSmartMatchInfos = function (options) {
-
-        options = options || {};
-
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches", options);
-
-        return this.ajax({
-            type: "GET",
-            url: url,
-            dataType: "json"
-        });
-    };
-
-    ApiClient.prototype.deleteSmartMatchEntries = function (entries) {
-
-        var url = this.getUrl("Library/FileOrganizations/SmartMatches/Delete");
-
-        var postData = {
-            Entries: entries
-        };
-
-        return this.ajax({
-
-            type: "POST",
-            url: url,
-            data: JSON.stringify(postData),
-            contentType: "application/json"
-        }).then(onApiCommandCompleted.bind({
-            instance: this,
-            eventName: 'AutoOrganize_ItemRemoved'
-        }));
-    };
+    }
 
     function AutoOrganizeEntryController() {
 
@@ -376,7 +300,7 @@
 
         var apiClient = connectionManager.getApiClient(options.items[0]);
         let promises = options.items.map(function (item) {
-            return apiClient.deleteOriginalFileFromOrganizationResult(item.Id);
+            return deleteOriginalFileFromOrganizationResult(apiClient, item.Id);
         });
 
         return Promise.all(promises);
@@ -413,7 +337,7 @@
 
                 loading.show();
 
-                return ApiClient.performOrganization(item.Id).then(function () {
+                return performOrganization(ApiClient, item.Id).then(function () {
 
                     loading.hide();
 
@@ -495,7 +419,7 @@
     function clearEntries(e) {
 
         let instance = this;
-        instance.getApiClient().clearOrganizationLog().catch(formHelper.handleErrorResponse);
+        clearOrganizationLog(instance.getApiClient()).catch(formHelper.handleErrorResponse);
     }
 
     function AutoOrganizeView(view, params) {
@@ -594,7 +518,7 @@
 
     AutoOrganizeView.prototype.getItems = function (query) {
 
-        return this.getApiClient().getFileOrganizationResults(query);
+        return getFileOrganizationResults(this.getApiClient(), query);
     };
 
     AutoOrganizeView.prototype.getNameSortOption = function (itemType) {
